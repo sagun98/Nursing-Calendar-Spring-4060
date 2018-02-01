@@ -1,0 +1,136 @@
+/**
+Custom CSS per-site can go here
+*/
+
+#block-ulm-functions-welcome-horizontal {
+	position: absolute;
+	top: 5px;
+	right: 10px;
+	display: inline-block;
+}
+/*
+.ulm-welcome-line input {
+	margin: 2px;
+}
+
+#main-wrapper .ulm-welcome-line #edit-name, #main-wrapper .ulm-welcome-line #edit-pass {
+	background-position: 5px 4px;
+	padding-left: 25px;
+}*/
+
+#navigation {
+	margin-top: 4px;
+}
+
+#main-menu a {
+	font-weight: bold;
+	text-decoration: none;
+	margin: 0 5px;
+	padding: 2px 8px;
+}
+
+#main-menu a:hover {
+	border-top: 2px solid #555;
+	border-bottom: 2px solid #555;
+}
+
+#main-menu a.active {
+	color: #444;
+}
+
+#main {
+	border: none;
+}
+
+#main .section {
+	margin-left: 5px;
+}
+
+.form-item {
+	margin: 1em 0;
+}
+
+.form-text {
+	padding: 5px;
+	border-radius: 3px;
+}
+
+#edit-submit {
+	padding: 3px 10px;
+}
+
+.page-home #user-login {
+	display: table;
+  border: 1px solid #ccc;
+  padding: 0.3em 4em;
+  border-radius: 3px;
+  background: #fcfcfc;
+  box-shadow: 0 0 2px #ccc;
+  margin: 0 auto;
+}
+
+#user-login .form-text {
+	width: 200px;
+}
+
+.page-home #add-form a {
+	padding: 3px 12px;
+	border: 1px solid #bbb;
+	border-radius: 13px;
+	background: #eee;
+	font-size: 10pt;
+	float: right;
+	margin: 0.5em 0.5em 0 0;
+}
+
+.page-home #add-form a:hover {
+	text-decoration: none;
+	box-shadow: 0 0 2px #aaa;
+}
+
+.page-home #form-filters #title-search, .page-home #form-filters #admin-search {
+	padding: 5px;
+	margin: 0.5em 1em 0 0;
+	width: 250px;
+}
+
+.page-home fieldset h4 {
+	margin: 2px 0;
+}
+
+.page-home .forms-table {
+	margin: 0 0 5px;
+}
+
+.forms-table tr {
+	border-top: 1px solid #aaa;
+	border-bottom: 1px solid #aaa;
+}
+
+.forms-table td {
+	padding: 5px;
+}
+
+#webform-components-form .form_components_header {
+	border: 1px solid orange;
+	border-radius: 5px;
+	padding: 8px;
+}
+
+#forms-table-header {
+	margin-bottom: -15px;
+}
+
+#forms-table-header td {
+	font-size: 12pt;
+	font-weight: bold;
+	padding-left: 0.8em;
+}
+
+
+.webform-container-inline label {
+  display: inline;
+}
+
+
+

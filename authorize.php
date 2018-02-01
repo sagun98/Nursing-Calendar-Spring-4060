@@ -42,7 +42,7 @@ function authorize_access_denied_page() {
   drupal_add_http_header('Status', '403 Forbidden');
   watchdog('access denied', 'authorize.php', NULL, WATCHDOG_WARNING);
   drupal_set_title('Access denied');
-  return t('You are not allowed to access this page.');
+  return t('You are not allowed to access this page.'); 
 }
 
 /**

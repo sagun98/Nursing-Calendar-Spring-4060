@@ -1,0 +1,117 @@
+/*
+  This file is for custom CSS styles
+*/
+
+/*
+  General layout stuff
+*/
+
+body {
+  color: #333;
+}
+
+#main {
+  border: 1px solid #ccc;
+  min-height: 400px;
+  
+}
+
+#main .section {
+  margin-right: 8px;
+}
+
+.region-sidebar-first .section {
+  margin-left: 4px;
+}
+
+
+textarea {
+  font-size: 1.0em;
+}
+
+p {
+  margin-top: 2px;
+  margin-bottom: 10px;  
+}
+
+table {
+  width: 100%;
+}
+
+thead {
+  border-bottom: 1px solid #ccc;
+}
+
+a {
+  color: #660000;
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+
+h1 {
+  font-size: 1.5em;
+}
+
+h2 {
+  font-size: 1.1em;
+}
+
+
+.block ul {
+  margin-top: 5px;
+  margin-bottom: 5px;  
+}
+
+/*
+  Without this, the views screen is crazily stretched for some weird reason
+*/
+#views-ui-edit-form .views-displays {
+  width: 100%;
+}
+
+
+/*
+  OG list of content per group
+*/
+.ulmcms-add-content-title {
+  border-bottom: 1px solid #666;
+}
+
+.ulmcms-add-content-desc-table {
+  margin-top: 5px;
+}
+
+/*
+  Node edit forms
+*/
+
+fieldset.filter-wrapper {
+  padding-top: 3px;
+  padding-bottom: 0;
+  border: 0;  
+}
+
+fieldset.filter-wrapper .filter-help {
+  display: none;
+}
+
+fieldset.filter-wrapper .form-type-select {
+  margin: 0;
+}
+
+/* This is a link that says "switch to plain text editor" and it isn't necessary
+  since this can be done with the pulldown. */
+.text-format-wrapper a.ckeditor_links {
+  display: none !important;
+}
+
+
+.region-footer {
+  color: #666;
+  padding-top: 20px;
+  text-align: center;
+  font-size: 0.85em;
+}
