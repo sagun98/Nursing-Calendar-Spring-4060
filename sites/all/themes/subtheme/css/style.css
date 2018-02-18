@@ -1,6 +1,18 @@
 /**
  * Place your custom styles here.
+ * I have shown an example below. 
  */
+ 
+ 
 body{
-    color:blue;
+   /* color:blue; */
+}
+
+.navbar{
+    background-color: #800029;
+}
+
+.name navbar-brand {
+     color:white;   
+     font-size: 30px;
 }

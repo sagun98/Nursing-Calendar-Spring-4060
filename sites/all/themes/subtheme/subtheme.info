@@ -3,7 +3,6 @@ description = Uses the jsDelivr CDN for all CSS and JavaScript. No source files 
 core = 7.x
 base theme = bootstrap
 
-
 ;;;;;;;;;;;;;;;;;;;;;
 ;; Regions
 ;;;;;;;;;;;;;;;;;;;;;
@@ -19,6 +18,11 @@ regions[footer]         = 'Footer'
 regions[page_top]       = 'Page top'
 regions[page_bottom]    = 'Page bottom'
 
+settings[header_fontsizer] = 0
+settings[header_height] = 90px
+settings[header_border_width] = 1px
+settings[sitename_top_margin] = 15px
+settings[sitename_left_margin] = 20px
 
 ;;;;;;;;;;;;;;;;;;;;;
 ;; Stylesheets
