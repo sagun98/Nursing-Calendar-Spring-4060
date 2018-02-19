@@ -1,0 +1,72 @@
+<?php
+
+/**
+ * @file
+ * Provides the ability to show which filters are used in Views Result.
+ */
+
+/**
+ * Implements hook_views_api().
+ */
+function views_exposed_filters_summary_views_api() {
+  return array('api' => '3');
+}
+
+/**
+ * Implements hook_theme().
+ */
+function views_exposed_filters_summary_theme($existing, $type, $theme, $path) {
+  return array(
+    'views_exposed_filters_summary_results' => array(
+      'variables' => array(
+        'summary' => NULL,
+        'results' => NULL,
+      ),
+      'template' => 'views-exposed-filters-summary-results',
+    ),
+  );
+}
+
+/**
+ * Remove a particular field (and related) from query string.
+ */
+function views_exposed_filters_summary_remove_from_url($all_pars, $field) {
+  if (is_array($all_pars)) {
+    $pars = array();
+    foreach ($all_pars as $key => $value) {
+      if ($key == $field || strpos($field, $key . '[') !== FALSE) {
+        continue;
+      }
+      else {
+        $pars[$key] = $value;
+      }
+    }
+    return $pars;
+  }
+  else {
+    return $all_pars;
+  }
+}
+
+/**
+ * Implements template_preprocess_HOOK().
+ * 
+ * For views-exposed-filters-summary-results.tpl.php.
+ */
+function template_preprocess_views_exposed_filters_summary_results(&$variables) {
+  $variables['path'] = request_path();
+  $query_parameters = drupal_get_query_parameters();
+
+  foreach ($variables['summary'] as $field_name => &$filter) {
+    $filter['query_parameters'] = views_exposed_filters_summary_remove_from_url($query_parameters, $filter['field']);
+
+    if (count($filter['value']) == 1) {
+      $filter['attributes']['class'][] = 'exposed-filter-selected-single';
+      $filter['output_value'] = array_pop($filter['value']);
+    }
+    else {
+      $filter['attributes']['class'][] = 'exposed-filter-selected-set';
+      $filter['output_value'] = implode(", ", $filter['value']);
+    }
+  }
+}
