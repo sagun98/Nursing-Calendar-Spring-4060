@@ -1,8 +1,0 @@
-<?php
-
-function mymodule_form_alter(&$form, &$form_state, $form_id) {
-    dpm($form);
-  if (isset($form['type']) && $form['type']['#value'] . '_node_settings' == $form_id) {
-    $form['title']['#type'] = 'hidden';
-  }
-}

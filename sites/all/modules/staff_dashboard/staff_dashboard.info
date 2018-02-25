@@ -1,0 +1,3 @@
+name = Staff dashboard
+description = Dashboard for requesting rooms
+core = 7.x

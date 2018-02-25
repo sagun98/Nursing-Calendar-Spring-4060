@@ -1,37 +1,70 @@
 <?php
 
+//Function that returns latest nodeid 
+function get_latest_nodeid(){
+    $r = db_select('node','n')
+    ->fields('n')
+    ->orderBy('created','DESC')
+    ->execute()
+    ->fetchObject();
+    return (int)$r->nid;
+}
 
-function custom_views_pre_render(&$view) {
-    //dpm($view);
-    //shuffle($view->result);
+function get_specific_room_to_update(){
+    $index=1;
+   // dpm(get_latest_nodeid());
+    $latest_node_id= (string)get_latest_nodeid();
+    
+    $res = db_query("SELECT name 
+            FROM taxonomy_term_data AS ttd, field_data_field_roomname AS froom
+            WHERE froom.field_roomname_tid = ttd.tid 
+                AND froom.entity_id=$latest_node_id");
+ 
+    $result = $res->fetchField();
+    
+  return(trim((explode("-",$result)[$index])));
+}
+
+function update_room_type(){
+   // $room_name= get_specific_room_to_update();
+    $latest_node_id= get_latest_nodeid()+"";
+   
+    $res = db_query("UPDATE field_data_field_room_type_for_filter
+            SET field_room_type_for_filter_value = '$room_name'
+            WHERE field_data_field_room_type_for_filter.entity_id = '$latest_node_id'");
+}
+
+function final_update(){
+$room_name=$GLOBALS['room_name'];
+$latest_node_id= get_latest_nodeid()+"";
+    $res = db_query("UPDATE field_data_field_room_type_for_filter 
+    SET field_room_type_for_filter_value ='gede'
+            WHERE field_data_field_room_type_for_filter.entity_id = $latest_node_id");
 }
 
 function custom_form_alter(&$form, &$form_state, $form_id) {
     //If clause for the submit_room_request form
+    //dpm($form_id);
     if ($form_id=="submit_room_request_node_form"){
+        //dpm($form);
         $form['title']['#type'] = 'hidden';
         $form['title']['#value'] = "Room Request";
         $form['actions']['submit']['#value'] = 'Request Room';
+        // Keeps the room type as NULL for the default and later updates its value 
+        $form['field_room_type_for_filter']['#type']='hidden';
+        $form['#submit'][] = 'custom_form_submit';
+        
+        
+        $GLOBALS['room_name']= get_specific_room_to_update();
+        
+      //  $form['actions']['submit']['#submit'][]=final_update();
+       // dpm($room_name);
     }    
     
     if ($form_id=="search_node_form"){
         $form['title']['#type'] = 'hidden';
         //Changes save buttom name to search
         $form['actions']['submit']['#value'] = 'Search rooms';  
-    
-   
-      $result = db_select(' taxonomy_term_data', 'ttd')
-    ->fields('ttd')
-//    ->condition('nid', $node->nid,'=')
-//    ->condition('status', 0,'>')
-//    ->condition('uid', array(1,5,7),'IN')
-    ->execute()
-    ->fetchAll();
-    //dpm ($result);
-  
-    
-    
-      
   }
   else {
       //drupal_set_message(t('This is a different page.'), 'error');
@@ -40,7 +73,11 @@ function custom_form_alter(&$form, &$form_state, $form_id) {
 
 
 function custom_form_submit($form, &$form_state) {
-     if ($form_id=="submit_room_request_node_form"){
-         
-     }
+   // $gg=(int)get_latest_nodeid();
+   //  drupal_set_message(t('lastest node id'.$gg));
+    //update_room_type();
+       // drupal_set_message(t('gggg The room type is updated'));
 }
+
+
+
