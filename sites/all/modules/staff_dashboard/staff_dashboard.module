@@ -1,4 +1,68 @@
 <?php
+function staff_dashboard_views_query_alter(&$view, &$query) {
+  //dpm($view);
+  //dpm($query);
+  
+}
 
+function staff_dashboard_form_alter(&$form, &$form_state, $form_id) {
+   // dpm($form_id);
+    if ($form_id=="staff_dashboard_node_form"){
+        //dpm($form);
+        $form['title']['#type'] = 'hidden';
+        $form['title']['#value'] = "Search Rooms For Request";
+        select_every_room();
+        staff_dashboard_form($form,$form_state) ;
+  }
+}
+
+function select_every_room(){
+    $res = db_query("SELECT name 
+            FROM taxonomy_term_data");
+             $result = $res->fetchAll();
+             foreach ($result as $value) {
+               dpm($value->name);
+             };
+}
+
+
+function staff_dashboard_menu() {
+  $items = array();
+
+  $items['staff/dashboard'] = array( //this creates a URL that will call this form at "examples/form-example"
+    'title' => 'Staff Dashboard', //page title
+    'description' => 'A dashboard for staff',
+    'page callback' => 'drupal_get_form', //this is the function that will be called when the page is accessed.  for a form, use drupal_get_form
+    'page arguments' => array('staff_dashboard_form'), //put the name of the form here
+    'access callback' => TRUE
+  );
+
+  return $items;
+}
+
+
+
+function staff_dashboard_form($form, &$form_state) {
+ $form['price'] = array(
+    '#type' => 'textfield', //you can find a list of available types in the form api
+    '#title' => 'What is Your Price?',
+    '#size' => 10,
+    '#maxlength' => 10,
+    '#required' => TRUE, //make this field required 
+  );
+
+  $form['submit_button'] = array(
+    '#type' => 'submit',
+    '#value' => t('Search rooms'),
+  );
+  
+  return $form;
+}
+
+function form_example_form_validate($form, &$form_state) {
+}
+
+function form_example_form_submit($form, &$form_state) {
+}
 
 ?>
