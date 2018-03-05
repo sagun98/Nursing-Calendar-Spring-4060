@@ -12,7 +12,7 @@ function get_latest_nodeid(){
 
 function get_specific_room_to_update(){
     $index=1;
-   // dpm(get_latest_nodeid());
+    //dpm(get_latest_nodeid());
     $latest_node_id= (string)get_latest_nodeid();
     
     $res = db_query("SELECT name 
@@ -44,21 +44,24 @@ $latest_node_id= get_latest_nodeid()+"";
 
 function custom_form_alter(&$form, &$form_state, $form_id) {
     //If clause for the submit_room_request form
-    //dpm($form_id);
     if ($form_id=="submit_room_request_node_form"){
+        $node = node_load('59');
+        //dpm($node);
         //dpm($form);
         $form['title']['#type'] = 'hidden';
         $form['title']['#value'] = "Room Request";
         $form['actions']['submit']['#value'] = 'Request Room';
+        
         // Keeps the room type as NULL for the default and later updates its value 
         $form['field_room_type_for_filter']['#type']='hidden';
         $form['#submit'][] = 'custom_form_submit';
         
-        
-        $GLOBALS['room_name']= get_specific_room_to_update();
-        
-      //  $form['actions']['submit']['#submit'][]=final_update();
-       // dpm($room_name);
+        create_save_new_node($form,$form_state,$_GET["room_name"],$_GET["start_date"],$_GET["end_date"]);
+        //$GLOBALS['room_name']= get_specific_room_to_update();
+        //  $form['actions']['submit']['#submit'][]=final_update();
+        // dpm($room_name);
+        //dpm($form_state);
+   
     }    
     
     if ($form_id=="search_node_form"){
@@ -72,12 +75,39 @@ function custom_form_alter(&$form, &$form_state, $form_id) {
 }
 
 
+function create_save_new_node(&$form, &$form_state,$room_name,$start_date,$end_date){
+  global $user;
+  $newNode = new stdClass();
+  $newNode->type = 'submit_room_request';
+  node_object_prepare($newNode);
+  $newNode->title = "testing_Room_request";
+  $newNode->uid = $user->uid;
+  $newNode->created = strtotime("now");
+  $newNode->changed = strtotime("now");
+  $newNode->status = 1;
+  $newNode->comment = 0;
+  $newNode->promote = 0;
+  $newNode->moderate = 0;
+  $newNode->sticky = 0;
+  $newNode->language = 'und';
+  
+  $stmt = db_query("SELECT tid FROM taxonomy_term_data WHERE name ='$room_name'");
+  $data = $stmt->fetchObject();
+  $tid = $data -> tid;
+  $newNode->field_roomname['und'][0]['tid']= $tid;
+  $newNode->field_room_type_for_filter['und'][0]['value'] = trim((explode("-",$room_name)[1]));;
+  $newNode->field_time['und'][0]['value']= $start_date;
+  $newNode->field_time['und'][0]['value2']= $end_date;
+  node_save($newNode);
+  drupal_set_message("Succeffully requested $room_name");
+  drupal_goto("staff/dashboard");
+ 
+}
+
+
 function custom_form_submit($form, &$form_state) {
    // $gg=(int)get_latest_nodeid();
    //  drupal_set_message(t('lastest node id'.$gg));
     //update_room_type();
        // drupal_set_message(t('gggg The room type is updated'));
 }
-
-
-

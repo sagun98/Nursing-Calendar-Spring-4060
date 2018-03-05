@@ -6,7 +6,7 @@ function staff_dashboard_views_query_alter(&$view, &$query) {
 }
 
 function staff_dashboard_form_alter(&$form, &$form_state, $form_id) {
-   // dpm($form_id);
+   //dpm($form_id);
     if ($form_id=="staff_dashboard_node_form"){
         //dpm($form);
         $form['title']['#type'] = 'hidden';
@@ -25,7 +25,6 @@ function select_every_room(){
              };
 }
 
-
 function staff_dashboard_menu() {
   $items = array();
 
@@ -43,26 +42,169 @@ function staff_dashboard_menu() {
 
 
 function staff_dashboard_form($form, &$form_state) {
- $form['price'] = array(
-    '#type' => 'textfield', //you can find a list of available types in the form api
-    '#title' => 'What is Your Price?',
-    '#size' => 10,
-    '#maxlength' => 10,
-    '#required' => TRUE, //make this field required 
-  );
 
-  $form['submit_button'] = array(
-    '#type' => 'submit',
-    '#value' => t('Search rooms'),
-  );
-  
+$date = '2018-03-06 00:00';
+$format = 'Y-m-d H:i';
+ 
+$form['start_date'] = array(
+    '#type' => 'date_popup',
+    '#title' => t('Start Time'),
+    '#default_value' => $date,
+    '#date_format' => $format,
+    '#date_label_position' => 'within',
+    '#date_timezone' => 'America/Chicago',
+    '#date_increment' => 15,
+    '#date_year_range' => '-3:+3',
+    // Use 'timepicker' option provided by the Date Popup Timepicker module.
+    // #timepicker property itself is provided by the Date Popup module.
+    '#timepicker' => 'timepicker',
+    // New #timepicker_options property handled by the Date Popup Timepicker
+    // module and lets to customize timepicker options.
+    '#timepicker_options' => array(
+      'rows' => 6,
+      'minutes' => array(
+        'starts' => 0,
+        'ends' => 56,
+        'interval' => 4,
+      ),
+      'showCloseButton' => TRUE,
+      'closeButtonText' => t('Close'),
+      ),
+      
+    );
+  $form['end_date'] = array(
+    '#type' => 'date_popup',
+    '#title' => t('End Time'),
+    '#default_value' => $date,
+    '#date_format' => $format,
+    '#date_label_position' => 'within',
+    '#date_timezone' => 'America/Chicago',
+    '#date_increment' => 15,
+    '#date_year_range' => '-3:+3',
+    '#timepicker' => 'timepicker',
+    '#timepicker_options' => array(
+      'rows' => 6,
+      'minutes' => array(
+        'starts' => 0,
+        'ends' => 56,
+        'interval' => 4,
+      ),
+      'showCloseButton' => TRUE,
+      'closeButtonText' => t('Close'),
+      ),
+      
+    );
+    
+    $form['actions']['submit'] = array(
+      '#type' => 'submit',
+      '#value' => t('Search for Rooms'),
+    );
+      
+    if (!empty($form_state['results_table'])) {
+      $form['results_table'] = array('#markup' => $form_state['results_table']);
+  }
   return $form;
+}
+
+function getStatus($id, $start_time, $end_time) {
+    $status = true;
+    $res = db_query("SELECT entity_id,
+            field_time_value, field_time_value2 
+            FROM field_data_field_time
+            WHERE entity_id = " . $id);
+  
+    
+    while($data = $res->fetchObject()){
+	      
+	    $start = $data -> field_time_value;
+	    
+	    $end = $data -> field_time_value2;
+	    
+	    if(($start_time >= $start && $start_time <= $end) || 
+	        $end_time <= $end && $end_time >= $start_time) {
+	            
+	            $status = false;
+	            
+	        }
+	    
+	  }
+        
+    if($status) {
+        
+        return 'Available';
+        
+    }
+    
+    else {
+        
+        return 'Booked';
+        
+    }
+
+}
+
+function getAllClasses($start_time, $end_time,&$form_state) {
+    
+    $output = "";
+    $res = db_query("SELECT name,tid FROM taxonomy_term_data");
+            
+  //  $result = $res->fetchAll();
+    //dpm ($result);
+      /* with table */
+	  $header = array('Room Name_____________', 'Status_______________', 'Book Room');
+	  $rows = array();
+
+	  // Looping for filling the table rows
+	  while($data = $res->fetchObject()){
+	      $status = getStatus($data->tid, $start_time, $end_time);
+  	     $rows[] = array(
+		     $data->name,
+		     $status,
+		     l(
+              t('Request'), 
+              '/node/add/submit-room-request', 
+              array(
+                'attributes' => array(
+                  'class' => array(
+                    'request', 
+                    'request-class',
+                  ), 
+                  'id' =>'request',
+                ),
+                'query' => array(
+                  'room_name' => $data->name,
+                  'start_date' => $form_state['values']['start_date'], 
+                  'end_date' => $form_state['values']['end_date']
+                ), 
+                'html' => TRUE,
+              )
+              )
+            );
+}
+
+	  // Output of table with the paging
+	  $output .= theme_table(
+		    array(
+		      "header" => $header,
+		      "rows" => $rows,
+		      "attributes" => array(),
+		      "sticky" => true, // Table header will be sticky
+		      "caption" => "",
+		      "colgroups" => array(),
+		      "empty" => t("Table has no data!") // The message to be displayed if table is empty
+		    )
+	  );
+	  
+	  return $output;
+    
 }
 
 function form_example_form_validate($form, &$form_state) {
 }
 
-function form_example_form_submit($form, &$form_state) {
+function staff_dashboard_form_submit($form, &$form_state) {
+	$form_state['results_table'] = getAllClasses($form_state['values']['start_date'], $form_state['values']['end_date'],$form_state);
+  $form_state['rebuild'] = TRUE;
 }
 
 ?>
