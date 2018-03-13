@@ -6,7 +6,7 @@ function staff_collision_menu() {
     'description' => 'A dashboard for staff displaying all the collisions',
     'page callback' => 'drupal_get_form', //this is the function that will be called when the page is accessed.  for a form, use drupal_get_form
     'page arguments' => array('staff_collision_form'), //put the name of the form here
-    'access callback' => TRUE
+    'access arguments' => array('view_collision_dashboard')
   );
   return $items;
 }
@@ -16,8 +16,6 @@ function staff_collision_menu() {
 function staff_collision_form($form, &$form_state) {
   $form_state['results_table'] = collided_classroom($form_state);
   $form_state['rebuild'] = TRUE;
-    
-   // dpm($form_state);
      if (!empty($form_state['results_table'])) {
       $form['results_table'] = array('#markup' => $form_state['results_table']);
   }
