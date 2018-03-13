@@ -6,13 +6,15 @@ function staff_dashboard_views_query_alter(&$view, &$query) {
 }
 
 function staff_dashboard_form_alter(&$form, &$form_state, $form_id) {
+
    //dpm($form_id);
     if ($form_id=="staff_dashboard_node_form"){
         //dpm($form);
         $form['title']['#type'] = 'hidden';
         $form['title']['#value'] = "Search Rooms For Request";
         select_every_room();
-        staff_dashboard_form($form,$form_state) ;
+        staff_dashboard_form($form,$form_state);
+        echo "<hr />";
   }
 }
 
@@ -26,6 +28,8 @@ function select_every_room(){
 }
 
 function staff_dashboard_menu() {
+  
+ // if ($GLOBALS['user']->roles =="admin"){
   $items = array();
 
   $items['staff/dashboard'] = array( //this creates a URL that will call this form at "examples/form-example"
@@ -37,22 +41,23 @@ function staff_dashboard_menu() {
   );
 
   return $items;
-}
+  }
+//}
 
 
 
 function staff_dashboard_form($form, &$form_state) {
+// if ($GLOBALS['user']->roles =="administrator" || $GLOBALS['user']->role == "manager" || $GLOBALS['user']->role=="staff"){
 
-$date = '2018-03-06 00:00';
 $format = 'Y-m-d H:i';
- 
+$timezone= drupal_get_user_timezone();
 $form['start_date'] = array(
     '#type' => 'date_popup',
     '#title' => t('Start Time'),
-    '#default_value' => $date,
+    '#default_value' => date("Y-m-d H:i", round(strtotime("now") / 900) * 900),
     '#date_format' => $format,
     '#date_label_position' => 'within',
-    '#date_timezone' => 'America/Chicago',
+    '#date_timezone' => $timezone,
     '#date_increment' => 15,
     '#date_year_range' => '-3:+3',
     // Use 'timepicker' option provided by the Date Popup Timepicker module.
@@ -75,10 +80,10 @@ $form['start_date'] = array(
   $form['end_date'] = array(
     '#type' => 'date_popup',
     '#title' => t('End Time'),
-    '#default_value' => $date,
-    '#date_format' => $format,
+    '#default_value' => date("Y-m-d H:i", round(strtotime("+1 hour") / 900) * 900),
+    '#date_format' => "H:i",
     '#date_label_position' => 'within',
-    '#date_timezone' => 'America/Chicago',
+    '#date_timezone' => $timezone,
     '#date_increment' => 15,
     '#date_year_range' => '-3:+3',
     '#timepicker' => 'timepicker',
@@ -105,63 +110,50 @@ $form['start_date'] = array(
   }
   return $form;
 }
+//}
 
 function getStatus($id, $start_time, $end_time) {
     $status = true;
     $res = db_query("SELECT entity_id,
             field_time_value, field_time_value2 
-            FROM field_data_field_time
-            WHERE entity_id = " . $id);
-  
-    
+            FROM field_data_field_time AS time NATURAL JOIN field_data_field_roomname AS room
+            WHERE room.field_roomname_tid = " . $id);
     while($data = $res->fetchObject()){
-	      
 	    $start = $data -> field_time_value;
-	    
 	    $end = $data -> field_time_value2;
-	    
 	    if(($start_time >= $start && $start_time <= $end) || 
-	        $end_time <= $end && $end_time >= $start_time) {
-	            
+	        ($end_time <= $end && $end_time >= $start)) {
 	            $status = false;
-	            
 	        }
-	    
 	  }
-        
     if($status) {
-        
         return 'Available';
-        
     }
-    
-    else {
-        
+    else {   
         return 'Booked';
-        
     }
-
 }
 
-function getAllClasses($start_time, $end_time,&$form_state) {
-    
+function getAllClasses($start_time, $end_time, &$form_state) {
     $output = "";
-    $res = db_query("SELECT name,tid FROM taxonomy_term_data");
-            
-  //  $result = $res->fetchAll();
-    //dpm ($result);
-      /* with table */
-	  $header = array('Room Name_____________', 'Status_______________', 'Book Room');
+    $end_time = substr($start_time, 0, (strrpos($start_time, " "))) . " " . $end_time;
+    $res = db_query("SELECT name, tid FROM taxonomy_term_data");
+	  $header = array('Room Name', 'Status', 'Book Room');
 	  $rows = array();
-
 	  // Looping for filling the table rows
 	  while($data = $res->fetchObject()){
-	      $status = getStatus($data->tid, $start_time, $end_time);
+	       $status = getStatus($data->tid, $start_time, $end_time);
+	       if($status == "Available") {
+	         $book = "Book Room";
+	       }
+	       else {
+	         $book = "Request";
+	       }  
   	     $rows[] = array(
 		     $data->name,
 		     $status,
 		     l(
-              t('Request'), 
+              t($book), 
               '/node/add/submit-room-request', 
               array(
                 'attributes' => array(
@@ -173,21 +165,22 @@ function getAllClasses($start_time, $end_time,&$form_state) {
                 ),
                 'query' => array(
                   'room_name' => $data->name,
-                  'start_date' => $form_state['values']['start_date'], 
-                  'end_date' => $form_state['values']['end_date']
+                  'start_date' => $start_time, 
+                  'end_date' => $end_time,
+                  'status' => $status,
                 ), 
                 'html' => TRUE,
-              )
+                )
               )
             );
-}
+        }
 
 	  // Output of table with the paging
 	  $output .= theme_table(
 		    array(
 		      "header" => $header,
 		      "rows" => $rows,
-		      "attributes" => array(),
+		      "attributes" => array(""),
 		      "sticky" => true, // Table header will be sticky
 		      "caption" => "",
 		      "colgroups" => array(),

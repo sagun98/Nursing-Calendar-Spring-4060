@@ -1,3 +1,5 @@
 name = Staff dashboard
 description = Dashboard for requesting rooms
 core = 7.x
+
+stylesheets[all][] = css/style.css

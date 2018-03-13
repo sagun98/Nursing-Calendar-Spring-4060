@@ -42,12 +42,84 @@ $latest_node_id= get_latest_nodeid()+"";
             WHERE field_data_field_room_type_for_filter.entity_id = $latest_node_id");
 }
 
+
+function tid($room_name){
+    $result = db_query("SELECT name,tid FROM taxonomy_term_data where name='$room_name'"); 
+    $data = $result->fetchObject();
+    return $data->tid;  
+}
+
+function get_one_status($start_time, $end_time) {
+    $status = true;
+    $tid= tid($_GET["room_name"]);
+    $res = db_query("SELECT entity_id,
+            field_time_value, field_time_value2 
+            FROM field_data_field_time AS time NATURAL JOIN field_data_field_roomname AS room
+            WHERE room.field_roomname_tid = " . $tid);
+    while($data = $res->fetchObject()){
+	    $start = $data -> field_time_value;
+	    $end = $data -> field_time_value2;
+	    if(($start_time >= $start && $start_time <= $end) || 
+	        ($end_time <= $end && $end_time >= $start)) {
+	            $status = false;
+	        }
+	  }
+    if($status) {
+        return 'Available';
+    }
+    else {   
+        return 'Booked';
+    }
+}
+
+function insert_collisions(){
+    global $user;
+    //dpm(implode(',', $user->roles));
+    //dpm($user->uid);
+    $current_status=get_one_status($_GET["start_date"], $_GET["end_date"]);
+    $room_name=$_GET['room_name'];
+    $start_time=$_GET['start_date'];
+    $end_time=$_GET['end_date'];
+    dpm($start_time);
+    $uid=(int)$user->uid;
+
+    if ($current_status!="Available"){
+        $sql="INSERT INTO collision (user_id,room_name,start_time, end_time) VALUES ($uid,'$room_name' ,'$start_time', '$end_time')";
+        $result = db_query($sql);
+    }
+}
+
+
+function custom_views_query_alter(&$view, &$query) {
+  // (Example assuming a view with an exposed filter on node title.)
+  // If the input for the title filter is a positive integer, filter against
+  // node ID instead of node title.
+  if ($view->name == 'staff_collision_dashboard') {
+    dpm($query);
+    dpm($view);
+    // Traverse through the 'where' part of the query.
+    foreach ($query->where as &$condition_group) {
+      foreach ($condition_group['conditions'] as &$condition) {
+
+        // If this is the part of the query filtering on title, change the
+        // condition to filter on node ID.
+        if ($condition['field'] == 'node.title') {
+          $condition = array(
+            'field' => 'node.nid',
+            'value' => $view->exposed_raw_input['title'],
+            'operator' => '=',
+          );
+        }
+      }
+    }
+  }
+}
+
 function custom_form_alter(&$form, &$form_state, $form_id) {
+    global $user;
     //If clause for the submit_room_request form
     if ($form_id=="submit_room_request_node_form"){
-        $node = node_load('59');
-        //dpm($node);
-        //dpm($form);
+        
         $form['title']['#type'] = 'hidden';
         $form['title']['#value'] = "Room Request";
         $form['actions']['submit']['#value'] = 'Request Room';
@@ -56,11 +128,9 @@ function custom_form_alter(&$form, &$form_state, $form_id) {
         $form['field_room_type_for_filter']['#type']='hidden';
         $form['#submit'][] = 'custom_form_submit';
         
+        //Inserts the collided classrooms in collision table with their current userid
+        insert_collisions();
         create_save_new_node($form,$form_state,$_GET["room_name"],$_GET["start_date"],$_GET["end_date"]);
-        //$GLOBALS['room_name']= get_specific_room_to_update();
-        //  $form['actions']['submit']['#submit'][]=final_update();
-        // dpm($room_name);
-        //dpm($form_state);
    
     }    
     
@@ -101,7 +171,6 @@ function create_save_new_node(&$form, &$form_state,$room_name,$start_date,$end_d
   node_save($newNode);
   drupal_set_message("Succeffully requested $room_name");
   drupal_goto("staff/dashboard");
- 
 }
 
 
