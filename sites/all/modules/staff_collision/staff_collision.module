@@ -50,7 +50,6 @@ function collided_classroom(&$form_state){
 		      "empty" => t("Table has no data!") // The message to be displayed if table is empty
 		    )
 	  );
-	  
 	  return $output;
 }
 ?>

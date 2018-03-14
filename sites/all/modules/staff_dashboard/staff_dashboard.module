@@ -1,15 +1,8 @@
 <?php
-function staff_dashboard_views_query_alter(&$view, &$query) {
-  //dpm($view);
-  //dpm($query);
-  
-}
-
 function staff_dashboard_form_alter(&$form, &$form_state, $form_id) {
 
    //dpm($form_id);
     if ($form_id=="staff_dashboard_node_form"){
-        //dpm($form);
         $form['title']['#type'] = 'hidden';
         $form['title']['#value'] = "Search Rooms For Request";
         select_every_room();
@@ -39,7 +32,6 @@ function staff_dashboard_menu() {
     'page arguments' => array('staff_dashboard_form'), //put the name of the form here
     'access arguments' => array('view_staff_dashboard')
   );
-
   return $items;
   }
 //}
@@ -56,6 +48,7 @@ $form['start_date'] = array(
     '#title' => t('Start Time'),
     '#default_value' => date("Y-m-d H:i", round(strtotime("now") / 900) * 900),
     '#date_format' => $format,
+     '#required' => TRUE,
     '#date_label_position' => 'within',
     '#date_timezone' => $timezone,
     '#date_increment' => 15,
@@ -77,6 +70,7 @@ $form['start_date'] = array(
       ),
       
     );
+    
   $form['end_date'] = array(
     '#type' => 'date_popup',
     '#title' => t('End Time'),
@@ -84,6 +78,7 @@ $form['start_date'] = array(
     '#date_format' => "H:i",
     '#date_label_position' => 'within',
     '#date_timezone' => $timezone,
+     '#required' => TRUE,
     '#date_increment' => 15,
     '#date_year_range' => '-3:+3',
     '#timepicker' => 'timepicker',
@@ -99,7 +94,39 @@ $form['start_date'] = array(
       ),
       
     );
+
+
+//         NURS 2000 - Nursing Concepts|NURS 2000 - Nursing Concepts
+//         NURS 2080 - Basic Principles of Pharmacology|NURS 2080 - Basic Principles of Pharmacology
+//         NURS 2004 - Health Assessment|NURS 2004 - Health Assessment
+//         NURS 2009 - Fundamentals of Professional Nursing Practice|NURS 2009 - Fundamentals of Professional Nursing Practice
+//         NURS 2011 - Introduction to Gerontological Nursing|NURS 2011 - Introduction to Gerontological Nursing
+//         NURS 2013 - Computing for Nurses|NURS 2013 - Computing for Nurses
+//         NURS 3009 - Adult Health Nursing 1|NURS 3009 - Adult Health Nursing 1
+//         NURS 3010 - Mental Health Nursing|NURS 3010 - Mental Health Nursing
+//         NURS 3011 - Nursing Synthesis 1|NURS 3011 - Nursing Synthesis 1
+//         NURS 3028 - Adult Health Nursing 2|NURS 3028 - Adult Health Nursing 2
+//         NURS 3029 - Maternal Child Health Nursing|NURS 3029 - Maternal Child Health Nursing
+//         NURS 3030 - Nursing Synthesis 2|NURS 3030 - Nursing Synthesis 2
+//         NURS 4000 - Adult Health Nursing 3|NURS 4000 - Adult Health Nursing 3
+//         NURS 4001 - Nursing Research: Evidence Based Practice|NURS 4001 - Nursing Research: Evidence Based Practice
+//         NURS 4002 - Nursing Synthesis 3|NURS 4002 - Nursing Synthesis 3
+//         NURS 4066 - Nursing Management|NURS 4066 - Nursing Management
+//         NURS 4067 - Public Health Nursing|NURS 4067 - Public Health Nursing
+
+
+    // Get all the course name for the current user
+    $course_name = get_courses_current_user();
+  //  dpm($course_name);
     
+    $form['selected'] = array(
+      '#type' => 'select',
+      '#title' => t('Course Name (Optional)'),
+      '#options' => $course_name,
+      '#default_value' => "Select Your Course Name",
+      '#description' => t('Enter the name of the course that you want to book classroom'),
+  );
+  
     $form['actions']['submit'] = array(
       '#type' => 'submit',
       '#value' => t('Search for Rooms'),
@@ -112,6 +139,28 @@ $form['start_date'] = array(
 }
 //}
 
+
+function get_courses_current_user(){
+    $courses= array();
+    $semester= array();
+    global $user;
+    $result = db_query("SELECT C.CourseID, C.CourseName, C.Semester
+                        FROM COURSE AS C, TEACHES AS T, USER AS U
+                        WHERE C.CourseID = T.CourseID
+                        AND T.CWID = U.CWID
+                        AND U.Username =  '$user->name'");
+	  // Looping for filling the table rows
+	  while($data = $result->fetchObject()){
+	    $course_name = $data->CourseName;
+	    $courses[$course_name]=$course_name;
+	    // $courses[]=array($course_name => $course_name); 
+	    //$semester['$data-> Semester'] = $data-> Semester;
+	  }
+	  
+	  return $courses;
+    
+    
+}
 function getStatus($id, $start_time, $end_time) {
     $status = true;
     $res = db_query("SELECT entity_id,
@@ -134,7 +183,7 @@ function getStatus($id, $start_time, $end_time) {
     }
 }
 
-function getAllClasses($start_time, $end_time, &$form_state) {
+function getAllClasses($start_time, $end_time,$course_name, &$form_state) {
     $output = "";
     $end_time = substr($start_time, 0, (strrpos($start_time, " "))) . " " . $end_time;
     $res = db_query("SELECT name, tid FROM taxonomy_term_data");
@@ -168,6 +217,7 @@ function getAllClasses($start_time, $end_time, &$form_state) {
                   'start_date' => $start_time, 
                   'end_date' => $end_time,
                   'status' => $status,
+                  'course_name' => $course_name,
                 ), 
                 'html' => TRUE,
                 )
@@ -187,16 +237,14 @@ function getAllClasses($start_time, $end_time, &$form_state) {
 		      "empty" => t("Table has no data!") // The message to be displayed if table is empty
 		    )
 	  );
-	  
 	  return $output;
-    
 }
 
 function form_example_form_validate($form, &$form_state) {
 }
 
 function staff_dashboard_form_submit($form, &$form_state) {
-	$form_state['results_table'] = getAllClasses($form_state['values']['start_date'], $form_state['values']['end_date'],$form_state);
+	$form_state['results_table'] = getAllClasses($form_state['values']['start_date'], $form_state['values']['end_date'],$form_state['values']['selected'],$form_state);
   $form_state['rebuild'] = TRUE;
 }
 

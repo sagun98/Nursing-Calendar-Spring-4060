@@ -114,7 +114,6 @@ function custom_form_alter(&$form, &$form_state, $form_id) {
     global $user;
     //If clause for the submit_room_request form
     if ($form_id=="submit_room_request_node_form"){
-        
         $form['title']['#type'] = 'hidden';
         $form['title']['#value'] = "Room Request";
         $form['actions']['submit']['#value'] = 'Request Room';
@@ -126,10 +125,10 @@ function custom_form_alter(&$form, &$form_state, $form_id) {
         $current_role=implode(',', $user->roles);        
         //Inserts the collided classrooms in collision table with their current userid
 
-        if ($current_role=="authenticated user,staff")
+        if ($current_role=="authenticated user,staff" || $current_role=="authenticated user,administrator")
         {
            insert_collisions();
-           create_save_new_node($form,$form_state,$_GET["room_name"],$_GET["start_date"],$_GET["end_date"]);
+           create_save_new_node($form,$form_state,$_GET["room_name"],$_GET["start_date"],$_GET["end_date"], $_GET["course_name"]);
         }
     }    
     
@@ -144,7 +143,7 @@ function custom_form_alter(&$form, &$form_state, $form_id) {
 }
 
 
-function create_save_new_node(&$form, &$form_state,$room_name,$start_date,$end_date){
+function create_save_new_node(&$form, &$form_state,$room_name,$start_date,$end_date, $course_name){
   global $user;
   $newNode = new stdClass();
   $newNode->type = 'submit_room_request';
@@ -167,6 +166,7 @@ function create_save_new_node(&$form, &$form_state,$room_name,$start_date,$end_d
   $newNode->field_room_type_for_filter['und'][0]['value'] = trim((explode("-",$room_name)[1]));;
   $newNode->field_time['und'][0]['value']= $start_date;
   $newNode->field_time['und'][0]['value2']= $end_date;
+  $newNode->field_course_names['und'][0]['value'] = $course_name;
   node_save($newNode);
   drupal_set_message("Succeffully requested $room_name");
   drupal_goto("staff/dashboard");
