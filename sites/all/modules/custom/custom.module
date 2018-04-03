@@ -108,6 +108,61 @@ function custom_views_query_alter(&$view, &$query) {
       }
     }
   }
+  
+  else if ($view->name == 'book_room_calendar') {
+      
+    global $user;
+    
+    $arrayOfIds[] = array();
+    
+    $count = 0;
+
+    if(check_role($user -> roles, "administrator") || check_role($user -> roles, "manager")) {
+ 
+        $res = db_query("SELECT fdfcn.entity_id
+                         FROM COURSE 
+                         JOIN field_data_field_course_names as fdfcn ON CourseName = fdfcn.field_course_names_value");
+    
+    }
+
+    else if(check_role($user -> roles, "staff") || check_role($user -> roles, "lead")) {
+    
+        $res = db_query("SELECT fdfcn.entity_id
+                         FROM USER NATURAL JOIN TEACHES NATURAL JOIN COURSE 
+                         JOIN field_data_field_cwid AS fdfc ON CWID = fdfc.field_cwid_value  
+                         JOIN users AS U ON fdfc.entity_id = U.uid 
+                         JOIN field_data_field_course_names as fdfcn ON CourseName = fdfcn.field_course_names_value
+                         WHERE U.uid = '$user->uid'");
+      
+    }
+
+    else {
+
+        $res = db_query("SELECT fdfcn.entity_id
+                         FROM USER NATURAL JOIN TAKES NATURAL JOIN COURSE 
+                         JOIN field_data_field_cwid AS fdfc ON CWID = fdfc.field_cwid_value  
+                         JOIN users AS U ON fdfc.entity_id = U.uid 
+                         JOIN field_data_field_course_names as fdfcn ON CourseName = fdfcn.field_course_names_value
+                         WHERE U.uid = '$user->uid'");
+                        
+    }
+                         
+    while($data = $res->fetchObject()){
+        
+	    $arrayOfIds[$count] = array(
+	        
+	        $data -> entity_id
+	        
+	        );
+	        
+	        $count++;
+    
+    }
+    
+    $query->add_where(1,'node.nid', $arrayOfIds, 'IN');
+
+  }
+  
 }
 
 function custom_form_alter(&$form, &$form_state, $form_id) {
@@ -145,19 +200,29 @@ function custom_form_alter(&$form, &$form_state, $form_id) {
 
 function create_save_new_node(&$form, &$form_state,$room_name,$start_date,$end_date, $course_name){
   global $user;
+  $current_status=get_one_status($_GET["start_date"], $_GET["end_date"]);
+  
   $newNode = new stdClass();
   $newNode->type = 'submit_room_request';
   node_object_prepare($newNode);
-  $newNode->title = "testing_Room_request";
+  $newNode->title = "Room_request";
   $newNode->uid = $user->uid;
   $newNode->created = strtotime("now");
   $newNode->changed = strtotime("now");
-  $newNode->status = 1;
+  
+  if ($current_status!='Available'){
+    $newNode->status = 0;
+  }
+  else{
+    $newNode->status = 1;
+  }
   $newNode->comment = 0;
   $newNode->promote = 0;
   $newNode->moderate = 0;
   $newNode->sticky = 0;
   $newNode->language = 'und';
+  
+  
   
   $stmt = db_query("SELECT tid FROM taxonomy_term_data WHERE name ='$room_name'");
   $data = $stmt->fetchObject();
@@ -168,7 +233,18 @@ function create_save_new_node(&$form, &$form_state,$room_name,$start_date,$end_d
   $newNode->field_time['und'][0]['value2']= $end_date;
   $newNode->field_course_names['und'][0]['value'] = $course_name;
   node_save($newNode);
-  drupal_set_message("Succeffully requested $room_name");
+  
+  
+  
+  if ($current_status !='Booked'){
+    drupal_set_message("Succefully requested $room_name");
+  }
+  
+  else {
+    drupal_set_message("Conflict with $room_name. Manager will resolve this conflict",'warning');
+    drupal_set_message("$room_name will show up in your calendar after your request is accepted. Go to Collided Rooms for more details",'warning');
+  }
+  
   drupal_goto("staff/dashboard");
 }
 

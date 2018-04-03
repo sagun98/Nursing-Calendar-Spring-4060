@@ -11,8 +11,6 @@ function staff_collision_menu() {
   return $items;
 }
 
-
-
 function staff_collision_form($form, &$form_state) {
   $form_state['results_table'] = collided_classroom($form_state);
   $form_state['rebuild'] = TRUE;

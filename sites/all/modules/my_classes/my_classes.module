@@ -1,0 +1,84 @@
+<?php
+
+function my_classes_menu() {
+  $items = array();
+  $items['my/classes'] = array( //this creates a URL that will call this form at "examples/form-example"
+    'title' => 'My Classes', //page title
+    'description' => 'A list of all classes the current user is part of',
+    'page callback' => 'drupal_get_form', //this is the function that will be called when the page is accessed.  for a form, use drupal_get_form
+    'page arguments' => array('my_classes_form'), //put the name of the form here
+    'access arguments' => array('view_my_classes')
+  );
+  return $items;
+}
+
+function my_classes_form($form, &$form_state) {
+  $form_state['results_table'] = get_classes($form_state);
+  $form_state['rebuild'] = TRUE;
+     if (!empty($form_state['results_table'])) {
+      $form['results_table'] = array('#markup' => $form_state['results_table']);
+  }
+  return $form;
+}
+
+function my_classes_form_alter($form, &$form_state) {
+ 
+}
+
+function get_classes(&$form_state){
+  $output="";
+  global $user;
+  $rows=array();
+  $header= array("Course Name","Title","Semester");
+  $count = 0;
+ 
+  if(check_role($user -> roles, "administrator") || check_role($user -> roles, "manager")) {
+ 
+    $res = db_query("SELECT CourseName, Title, Semester
+                     FROM COURSE");
+    
+  }
+    
+  else if(check_role($user -> roles, "staff") || check_role($user -> roles, "lead")) {
+    
+    $res = db_query("SELECT CourseName, Title, Semester
+                     FROM USER NATURAL JOIN TEACHES NATURAL JOIN COURSE 
+                     JOIN field_data_field_cwid AS fdfc ON CWID = fdfc.field_cwid_value  
+                     JOIN users AS U ON fdfc.entity_id = U.uid 
+                     WHERE U.uid = '$user->uid'");
+      
+  }
+
+  else {
+
+    $res = db_query("SELECT CourseName, Title, Semester
+                     FROM USER NATURAL JOIN TAKES NATURAL JOIN COURSE 
+                     JOIN field_data_field_cwid AS fdfc ON CWID = fdfc.field_cwid_value  
+                     JOIN users AS U ON fdfc.entity_id = U.uid 
+                     WHERE U.uid = '$user->uid'");
+                        
+  }
+
+
+  while($data = $res->fetchObject()){
+	  $rows[$count] = array(
+		$data -> CourseName,
+		$data -> Title,
+		$data -> Semester
+    );
+    $count++;
+}
+   $output .= theme_table(
+		    array(
+		      "header" => $header,
+		      "rows" => $rows,
+		      "attributes" => array(""),
+		      "sticky" => false, // Table header will be sticky
+		      "caption" => "",
+		      "colgroups" => array(),
+		      "empty" => t("Table has no data!") // The message to be displayed if table is empty
+		    )
+	  );
+	  return $output;
+}
+?>

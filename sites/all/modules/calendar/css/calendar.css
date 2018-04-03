@@ -122,8 +122,8 @@
  * format days of the week header cells
  */
 .calendar-calendar th.days {
-  color: #ccc;
-  background-color: #224;
+  color: white;
+  background-color: black;
   text-align: center;
   padding: 1px;
   margin: 0;

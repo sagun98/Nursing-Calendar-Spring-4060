@@ -112,7 +112,7 @@
  */
 .calendar-calendar th.days {
   color: #ccc;
-  background-color: #224;
+  background-color: #244;
   text-align: center;
   padding: 1px;
   margin: 0;
@@ -317,8 +317,8 @@ table.calendar-legend tr.even .stripe {
   text-decoration: none;
 }
 .calendar-calendar th.days {
-  background-color: #eee;
-  color: #777;
+  background-color: black;
+  color: white;
   font-weight: bold;
   border: 1px solid #ccc;
 }
@@ -595,7 +595,7 @@ table.calendar-legend tr.even .stripe {
 .calendar-calendar .month-view .full td.single-day div.monthview,
 .calendar-calendar .week-view .full td.single-day div.weekview,
 .calendar-calendar .day-view .full td.single-day div.dayview {
-  background: #ffc;
+  background: #dad8d6;
   width: auto;
   padding: 0px 3px;
   overflow: hidden;

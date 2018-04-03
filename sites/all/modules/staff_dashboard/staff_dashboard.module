@@ -48,7 +48,7 @@ $form['start_date'] = array(
     '#title' => t('Start Time'),
     '#default_value' => date("Y-m-d H:i", round(strtotime("now") / 900) * 900),
     '#date_format' => $format,
-     '#required' => TRUE,
+    '#required' => TRUE,
     '#date_label_position' => 'within',
     '#date_timezone' => $timezone,
     '#date_increment' => 15,
@@ -78,7 +78,7 @@ $form['start_date'] = array(
     '#date_format' => "H:i",
     '#date_label_position' => 'within',
     '#date_timezone' => $timezone,
-     '#required' => TRUE,
+    '#required' => TRUE,
     '#date_increment' => 15,
     '#date_year_range' => '-3:+3',
     '#timepicker' => 'timepicker',
@@ -139,16 +139,46 @@ $form['start_date'] = array(
 }
 //}
 
+function check_role($userRoles, $role) {
+  
+  $isRole = false;
+  
+    foreach($userRoles as $user) {
+      
+      if($user == $role) {
+        
+        $isRole = true;
+        
+      }
+      
+    }
+    
+    return $isRole;
+  
+}
+
 
 function get_courses_current_user(){
     $courses= array();
     $semester= array();
     global $user;
-    $result = db_query("SELECT C.CourseID, C.CourseName, C.Semester
-                        FROM COURSE AS C, TEACHES AS T, USER AS U
-                        WHERE C.CourseID = T.CourseID
-                        AND T.CWID = U.CWID
-                        AND U.Username =  '$user->name'");
+    if(check_role($user -> roles, "administrator")) {
+    
+      $result = db_query("SELECT CourseID, CourseName, Semester
+                          FROM COURSE");
+      
+    }
+    
+    else {
+      
+      $result = db_query("SELECT C.CourseID, C.CourseName, C.Semester
+                          FROM COURSE AS C, TEACHES AS T, USER AS U
+                          WHERE C.CourseID = T.CourseID
+                          AND T.CWID = U.CWID
+                          AND U.Username =  '$user->name'");
+                        
+    }
+    
 	  // Looping for filling the table rows
 	  while($data = $result->fetchObject()){
 	    $course_name = $data->CourseName;
