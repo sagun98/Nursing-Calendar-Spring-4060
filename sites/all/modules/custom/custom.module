@@ -51,6 +51,7 @@ function tid($room_name){
 
 function get_one_status($start_time, $end_time) {
     $status = true;
+    $GLOBALS['room_name']=$_GET["room_name"];
     $tid= tid($_GET["room_name"]);
     $res = db_query("SELECT entity_id,
             field_time_value, field_time_value2 
@@ -76,15 +77,66 @@ function insert_collisions(){
     global $user;
     $current_status=get_one_status($_GET["start_date"], $_GET["end_date"]);
     $room_name=$_GET['room_name'];
+    $course_name =  $_GET["course_name"];
+    $start_time=$_GET['start_date'];
+    $end_time=$_GET['end_date'];
+    $uid=(int)$user->uid;
+    $GLOBALS['collision_id'] = $room_name; 
+    $collision_id =$GLOBALS['collision_id'];
+    
+    if ($current_status!="Available"){
+        $sql="INSERT INTO collision (user_id, course_name, room_name,start_time, end_time, collision_id, flag) VALUES ($uid, '$course_name' ,'$room_name' ,'$start_time', '$end_time', '$collision_id', 1)";
+        $result = db_query($sql);
+    }
+}
+
+function insert_other_collided_class(){
+    global $user;
+    $current_status=get_one_status($_GET["start_date"], $_GET["end_date"]);
+    $room_name=$_GET['room_name'];
     $start_time=$_GET['start_date'];
     $end_time=$_GET['end_date'];
     $uid=(int)$user->uid;
 
     if ($current_status!="Available"){
-        $sql="INSERT INTO collision (user_id,room_name,start_time, end_time) VALUES ($uid,'$room_name' ,'$start_time', '$end_time')";
-        $result = db_query($sql);
+            $all_room = array(); 
+            $result = db_query("SELECT name,tid FROM taxonomy_term_data"); 
+            while ($data=$result->fetchObject()){
+                $all_room[]=$data->name;      
+            }
+            
+            // Remove the booked classroom from the array 
+        	$index = array_search($room_name, $all_room);
+        	if ( $index !== false ) {
+        		unset( $all_room[$index] );
+        	}
+        
+        foreach ($all_room as $room){
+            $tid= tid($room);
+            $res = db_query("SELECT entity_id,
+            field_time_value, field_time_value2 
+            FROM field_data_field_time AS time NATURAL JOIN field_data_field_roomname AS room
+            WHERE room.field_roomname_tid = " . $tid);
+            
+            while($data = $res->fetchObject()){
+        	    $start = $data -> field_time_value;
+        	    $end = $data -> field_time_value2;
+        	    if(($start_time >= $start && $start_time <= $end) || 
+        	        ($end_time <= $end && $end_time >= $start)) {
+        	            //insertion query 
+        	                global $user;
+                            $room_name=$room;
+                            $start_time=$_GET['start_date'];
+                            $end_time=$_GET['end_date'];
+                            $uid=(int)$user->uid;
+                            $collision_id =$GLOBALS['collision_id'];
+                            $sql="INSERT INTO collision (user_id,course_name, room_name,start_time, end_time, collision_id) VALUES ($uid,'$course_name','$room_name' ,'$start_time', '$end_time', '$collision_id')";
+                            $result = db_query($sql);
+	        }
+    	  }
+        }
+        }
     }
-}
 
 
 function custom_views_query_alter(&$view, &$query) {
@@ -180,9 +232,10 @@ function custom_form_alter(&$form, &$form_state, $form_id) {
         $current_role=implode(',', $user->roles);        
         //Inserts the collided classrooms in collision table with their current userid
 
-        if ($current_role=="authenticated user,staff" || $current_role=="authenticated user,administrator")
+        if ($current_role=="authenticated user,staff" || $current_role=="authenticated user,administrator" || $current_role=="authenticated user,lead")
         {
            insert_collisions();
+           //insert_other_collided_class();
            create_save_new_node($form,$form_state,$_GET["room_name"],$_GET["start_date"],$_GET["end_date"], $_GET["course_name"]);
         }
     }    

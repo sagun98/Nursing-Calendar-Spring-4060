@@ -28,13 +28,21 @@ function collided_classroom(&$form_state){
   $output="";
     global $user;
     $rows=array();
-    $header= array("Room Name","Start Date","End Date");
-    $res = db_query("SELECT * FROM collision where user_id =".$user->uid);
+    $header= array("Room Name","Course Name", "Start Date","End Date");
+   
+    $res = db_query("SELECT * FROM collision where user_id ='$user->uid' AND flag = 1");
     while($data = $res->fetchObject()){
+      $collided_array = array();
+      $col = db_query("SELECT * FROM collision where collision_id = '$data->collision_id' ");
+      while($coll = $col->fetchObject()){
+        $collided_array[]= $coll->course_name;
+      }
 	    $rows[] = array(
 		     $data->room_name,
+		     $data -> course_name,
 		     $data -> start_time,
-		     $data -> end_time
+		     $data -> end_time, 
+		     "<br>Collided With<br><br>$collided_array[0] <br> $collided_array[1]",
   );
 }
    $output .= theme_table(
