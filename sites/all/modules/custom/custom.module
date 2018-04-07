@@ -53,6 +53,13 @@ function get_one_status($start_time, $end_time) {
     $status = true;
     $GLOBALS['room_name']=$_GET["room_name"];
     $tid= tid($_GET["room_name"]);
+    $lock = db_query("SELECT * FROM field_revision_field_lock_date_time WHERE  entity_id=(SELECT MAX(entity_id) FROM field_revision_field_lock_date_time)");
+    $lock_data = $lock->fetchObject();
+    $lock_date = $lock_data->field_lock_date_time_value;
+    $current_date = date('Y-m-d H:i:s', time());
+    $lock_date = date('Y-m-d H:i:s',strtotime('-5 hour',strtotime($lock_date)));
+    
+    if (strtotime($lock_date) > strtotime($current_date)){
     $res = db_query("SELECT entity_id,
             field_time_value, field_time_value2 
             FROM field_data_field_time AS time NATURAL JOIN field_data_field_roomname AS room
@@ -71,6 +78,11 @@ function get_one_status($start_time, $end_time) {
     else {   
         return 'Booked';
     }
+    }
+    else {
+        return 'Locked';
+    }
+    
 }
 
 function insert_collisions(){
@@ -84,7 +96,7 @@ function insert_collisions(){
     $GLOBALS['collision_id'] = $room_name; 
     $collision_id =$GLOBALS['collision_id'];
     
-    if ($current_status!="Available"){
+    if ($current_status=="Booked"){
         $sql="INSERT INTO collision (user_id, course_name, room_name,start_time, end_time, collision_id, flag) VALUES ($uid, '$course_name' ,'$room_name' ,'$start_time', '$end_time', '$collision_id', 1)";
         $result = db_query($sql);
     }
@@ -130,10 +142,10 @@ function insert_other_collided_class(){
                             $end_time=$_GET['end_date'];
                             $uid=(int)$user->uid;
                             $collision_id =$GLOBALS['collision_id'];
-                            $sql="INSERT INTO collision (user_id,course_name, room_name,start_time, end_time, collision_id) VALUES ($uid,'$course_name','$room_name' ,'$start_time', '$end_time', '$collision_id')";
-                            $result = db_query($sql);
 	        }
     	  }
+    	    $sql="INSERT INTO collision (user_id,course_name, room_name,start_time, end_time, collision_id) VALUES ($uid,'$course_name','$room_name' ,'$start_time', '$end_time', '$collision_id')";
+            $result = db_query($sql);
         }
         }
     }
@@ -219,6 +231,12 @@ function custom_views_query_alter(&$view, &$query) {
 
 function custom_form_alter(&$form, &$form_state, $form_id) {
     global $user;
+    if ($form_id == "manager_lock_date_time_node_form"){
+        $form['title']['#type'] = 'hidden';
+        $form['title']['#value'] = "Lock Time";
+        $form['actions']['submit']['#value'] = 'Set Lock Time';
+    }
+    
     //If clause for the submit_room_request form
     if ($form_id=="submit_room_request_node_form"){
         $form['title']['#type'] = 'hidden';
@@ -234,6 +252,7 @@ function custom_form_alter(&$form, &$form_state, $form_id) {
 
         if ($current_role=="authenticated user,staff" || $current_role=="authenticated user,administrator" || $current_role=="authenticated user,lead")
         {
+            //dpm ($status);
            insert_collisions();
            //insert_other_collided_class();
            create_save_new_node($form,$form_state,$_GET["room_name"],$_GET["start_date"],$_GET["end_date"], $_GET["course_name"]);
@@ -253,7 +272,8 @@ function custom_form_alter(&$form, &$form_state, $form_id) {
 
 function create_save_new_node(&$form, &$form_state,$room_name,$start_date,$end_date, $course_name){
   global $user;
-  $current_status=get_one_status($_GET["start_date"], $_GET["end_date"]);
+  $current_status=$_GET["status"];
+  //get_one_status($_GET["start_date"], $_GET["end_date"]);
   
   $newNode = new stdClass();
   $newNode->type = 'submit_room_request';
@@ -289,8 +309,12 @@ function create_save_new_node(&$form, &$form_state,$room_name,$start_date,$end_d
   
   
   
-  if ($current_status !='Booked'){
-    drupal_set_message("Succefully requested $room_name");
+  if ($current_status =='Available'){
+    drupal_set_message("Successfully requested $room_name");
+  }
+  
+  elseif ($current_status =='Locked'){
+     drupal_set_message("$room_name is currently locked. Manager will handlle this request",'warning');
   }
   
   else {

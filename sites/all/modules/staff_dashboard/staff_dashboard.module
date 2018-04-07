@@ -140,21 +140,13 @@ $form['start_date'] = array(
 //}
 
 function check_role($userRoles, $role) {
-  
   $isRole = false;
-  
     foreach($userRoles as $user) {
-      
       if($user == $role) {
-        
         $isRole = true;
-        
       }
-      
     }
-    
     return $isRole;
-  
 }
 
 
@@ -164,7 +156,7 @@ function get_courses_current_user(){
     global $user;
     if(check_role($user -> roles, "administrator")) {
     
-      $result = db_query("SELECT CourseID, CourseName, Semester
+    $result = db_query("SELECT CourseID, CourseName, Semester
                           FROM COURSE");
       
     }
@@ -193,6 +185,15 @@ function get_courses_current_user(){
 }
 function getStatus($id, $start_time, $end_time) {
     $status = true;
+    $lock = db_query("SELECT * FROM field_revision_field_lock_date_time WHERE  entity_id=(SELECT MAX(entity_id) FROM field_revision_field_lock_date_time)");
+    $lock_data = $lock->fetchObject();
+    $lock_date = $lock_data->field_lock_date_time_value;
+    $current_date = date('Y-m-d H:i:s', time());
+    $lock_date = date('Y-m-d H:i:s',strtotime('-5 hour',strtotime($lock_date)));
+    //dpm($current_date);
+    //dpm($lock_date);
+    
+    if (strtotime($lock_date) > strtotime($current_date)){
     $res = db_query("SELECT entity_id,
             field_time_value, field_time_value2 
             FROM field_data_field_time AS time NATURAL JOIN field_data_field_roomname AS room
@@ -211,6 +212,10 @@ function getStatus($id, $start_time, $end_time) {
     else {   
         return 'Booked';
     }
+    }
+    else {
+    return "Locked";
+    }
 }
 
 function getAllClasses($start_time, $end_time,$course_name, &$form_state) {
@@ -224,6 +229,9 @@ function getAllClasses($start_time, $end_time,$course_name, &$form_state) {
 	       $status = getStatus($data->tid, $start_time, $end_time);
 	       if($status == "Available") {
 	         $book = "Book Room";
+	       }
+	       elseif ($status == "Locked"){
+	         $book = "Booking Closed( Manager Will Handle the request)"; 
 	       }
 	       else {
 	         $book = "Request";
