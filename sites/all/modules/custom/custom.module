@@ -181,7 +181,8 @@ function custom_views_query_alter(&$view, &$query) {
     
     $count = 0;
 
-    if(check_role($user -> roles, "administrator") || check_role($user -> roles, "manager")) {
+    if(check_role($user -> roles, "administrator") || check_role($user -> roles, "manager") 
+        || check_role($user -> roles, "staff") || check_role($user -> roles, "lead")) {
  
         $res = db_query("SELECT fdfcn.entity_id
                          FROM COURSE 
@@ -189,18 +190,7 @@ function custom_views_query_alter(&$view, &$query) {
     
     }
 
-    else if(check_role($user -> roles, "staff") || check_role($user -> roles, "lead")) {
-    
-        $res = db_query("SELECT fdfcn.entity_id
-                         FROM USER NATURAL JOIN TEACHES NATURAL JOIN COURSE 
-                         JOIN field_data_field_cwid AS fdfc ON CWID = fdfc.field_cwid_value  
-                         JOIN users AS U ON fdfc.entity_id = U.uid 
-                         JOIN field_data_field_course_names as fdfcn ON CourseName = fdfcn.field_course_names_value
-                         WHERE U.uid = '$user->uid'");
-      
-    }
-
-    else {
+    else if(check_role($user -> roles, "student")) {
 
         $res = db_query("SELECT fdfcn.entity_id
                          FROM USER NATURAL JOIN TAKES NATURAL JOIN COURSE 
@@ -210,7 +200,7 @@ function custom_views_query_alter(&$view, &$query) {
                          WHERE U.uid = '$user->uid'");
                         
     }
-                         
+           
     while($data = $res->fetchObject()){
         
 	    $arrayOfIds[$count] = array(
@@ -231,6 +221,7 @@ function custom_views_query_alter(&$view, &$query) {
 
 function custom_form_alter(&$form, &$form_state, $form_id) {
     global $user;
+    //dpm(implode(',', $user->roles));  
     if ($form_id == "manager_lock_date_time_node_form"){
         $form['title']['#type'] = 'hidden';
         $form['title']['#value'] = "Lock Time";
@@ -249,10 +240,11 @@ function custom_form_alter(&$form, &$form_state, $form_id) {
         
         $current_role=implode(',', $user->roles);        
         //Inserts the collided classrooms in collision table with their current userid
-
-        if ($current_role=="authenticated user,staff" || $current_role=="authenticated user,administrator" || $current_role=="authenticated user,lead")
+        
+        dpm ($current_role);
+        if ($current_role=="authenticated user,lead,staff" || $current_role=="authenticated user,manager" || $current_role=="authenticated user,administrator" || $current_role=="authenticated user,staff")
         {
-            //dpm ($status);
+           //dpm ($status);
            insert_collisions();
            //insert_other_collided_class();
            create_save_new_node($form,$form_state,$_GET["room_name"],$_GET["start_date"],$_GET["end_date"], $_GET["course_name"]);
@@ -289,7 +281,7 @@ function create_save_new_node(&$form, &$form_state,$room_name,$start_date,$end_d
   else{
     $newNode->status = 1;
   }
-  $newNode->comment = 0;
+  $newNode->comment = 2;
   $newNode->promote = 0;
   $newNode->moderate = 0;
   $newNode->sticky = 0;

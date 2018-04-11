@@ -51,6 +51,8 @@ label {
     width: 100% !important;
     display: inline-block !important;
 }
+
+
 .form-control {
     position: relative !important;
     width: 75% !important;

@@ -1,0 +1,36 @@
+<?php 
+
+function admin_menu() {
+  
+  $items = array();
+
+  // For the default local task, we need very little configuration, as the
+  // callback and other conditions are handled by the parent callback.
+  $items['admin-dashboard'] = array(
+    'title' => 'Admin Dashboard',
+    'description' => 'A dashboard to approve or reject requests',
+    'page arguments' => array('admin-dashboard'), //put the name of the form here
+  );
+  
+  $items['admin-dashboard/Requests'] = array(
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'title' => 'Event Requests',
+    'description' => 'A dashboard to approve or reject requests',
+    'weight' => 1,
+  );
+  
+  $items['admin-dashboard/lead/selection'] = array( //this creates a URL that will call this form at "examples/form-example"
+    'type' => MENU_LOCAL_TASK,
+    'title' => 'Lead Selection', //page title
+    'description' => 'A page to select the lead teacher for a course',
+    'page callback' => 'drupal_get_form', //this is the function that will be called when the page is accessed.  for a form, use drupal_get_form
+    'page arguments' => array('lead_selection_form'), //put the name of the form here
+    'access arguments' => array('lead_selection'),
+    'weight' => 4,  
+  );
+  
+  return $items;
+  
+}
+
+?>

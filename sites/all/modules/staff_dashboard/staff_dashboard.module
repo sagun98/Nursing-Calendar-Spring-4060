@@ -1,14 +1,14 @@
 <?php
 function staff_dashboard_form_alter(&$form, &$form_state, $form_id) {
 
-   //dpm($form_id);
+  /** //dpm($form_id);
     if ($form_id=="staff_dashboard_node_form"){
         $form['title']['#type'] = 'hidden';
         $form['title']['#value'] = "Search Rooms For Request";
         select_every_room();
         staff_dashboard_form($form,$form_state);
         echo "<hr />";
-  }
+  }*/
 }
 
 function select_every_room(){
@@ -22,24 +22,42 @@ function select_every_room(){
 
 function staff_dashboard_menu() {
   
- // if ($GLOBALS['user']->roles =="admin"){
   $items = array();
-
-  $items['staff/dashboard'] = array( //this creates a URL that will call this form at "examples/form-example"
-    'title' => 'Staff Dashboard', //page title
+  
+  $items['staff/dashboard'] = array(
+    'title' => 'Staff Dashboard',
     'description' => 'A dashboard for staff',
     'page callback' => 'drupal_get_form', //this is the function that will be called when the page is accessed.  for a form, use drupal_get_form
     'page arguments' => array('staff_dashboard_form'), //put the name of the form here
-    'access arguments' => array('view_staff_dashboard')
+    'access arguments' => array('view_staff_dashboard'),
   );
+  
+  // For the default local task, we need very little configuration, as the
+  // callback and other conditions are handled by the parent callback.
+  $items['staff/dashboard/default'] = array(
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'title' => 'Room Scheduling',
+    'description' => 'A dashboard for staff',
+    'weight' => 1,
+    
+  );
+  
+  $items['staff/dashboard/collisions'] = array( //this creates a URL that will call this form at "examples/form-example"
+    'type' => MENU_LOCAL_TASK,
+    'title' => 'Collisions', //page title
+    'description' => 'A dashboard for staff displaying all the collisions',
+    'page callback' => 'drupal_get_form', //this is the function that will be called when the page is accessed.  for a form, use drupal_get_form
+    'page arguments' => array('staff_collision_form'), //put the name of the form here
+    'access arguments' => array('view_collision_dashboard'),
+    'weight' => 2,  
+    
+  );
+  
   return $items;
-  }
-//}
-
-
+  
+}
 
 function staff_dashboard_form($form, &$form_state) {
-// if ($GLOBALS['user']->roles =="administrator" || $GLOBALS['user']->role == "manager" || $GLOBALS['user']->role=="staff"){
 
 $format = 'Y-m-d H:i';
 $timezone= drupal_get_user_timezone();
@@ -117,7 +135,6 @@ $form['start_date'] = array(
 
     // Get all the course name for the current user
     $course_name = get_courses_current_user();
-  //  dpm($course_name);
     
     $form['selected'] = array(
       '#type' => 'select',
@@ -154,7 +171,7 @@ function get_courses_current_user(){
     $courses= array();
     $semester= array();
     global $user;
-    if(check_role($user -> roles, "administrator")) {
+    if(check_role($user -> roles, "administrator") || check_role($user -> roles, "manager")) {
     
     $result = db_query("SELECT CourseID, CourseName, Semester
                           FROM COURSE");

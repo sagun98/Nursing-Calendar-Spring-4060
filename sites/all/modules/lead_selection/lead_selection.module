@@ -1,0 +1,322 @@
+<?php
+
+function lead_selection_menu() {
+  
+  $items = array();
+  
+  $items['lead/selection'] = array( //this creates a URL that will call this form at "examples/form-example"
+    'title' => 'Lead Selection', //page title
+    'description' => 'A page to select the lead teacher for a course',
+    'page callback' => 'drupal_get_form', //this is the function that will be called when the page is accessed.  for a form, use drupal_get_form
+    'page arguments' => array('lead_selection_form'), //put the name of the form here
+    'access arguments' => array('lead_selection'),
+  );
+  
+  return $items;
+}
+
+function getAllTeachers($CourseName) {
+    
+    $res = db_query("SELECT CWID, username  
+                     FROM USER NATURAL JOIN TEACHES NATURAL JOIN COURSE
+                     WHERE CourseName = '$CourseName'");
+    
+    $teachers = array();
+    
+    $lead = getCurrentLead($CourseName);
+    
+    $teachers[] = array('None' => 'None');
+    
+    while($data = $res->fetchObject()) {
+      
+      $isLead = FALSE;
+      
+      if($lead == $data -> CWID)
+        $isLead = TRUE;
+      
+      $teachers[] = array($data -> CWID => $data -> username);
+        
+    }
+    
+    return $teachers;
+    
+}
+
+function getCurrentLead($CourseName) {
+  
+  $res = db_query("SELECT CWID 
+                   FROM USER NATURAL JOIN LEAD
+                   WHERE CourseName = '$CourseName'");
+                     
+  $lead = 'None';
+    
+  if($data = $res->fetchObject()){
+        
+    $lead = $data -> CWID;
+      
+  }
+    
+  return $lead;
+  
+}
+
+function createLeadSelectionTable($form, &$form_state) {
+  
+  $output = "";
+    
+  $res = db_query("SELECT DISTINCT CourseName, Title 
+                   FROM COURSE");
+                     
+	$header = array('Course Name', 'Course Title', 'Lead');
+	
+	$rows = array();
+	
+	$form['courses'] = array(
+    '#prefix' => '<div id="courses">',
+    '#suffix' => '</div>',
+    '#tree' => TRUE,
+    '#theme' => 'table',
+    '#header' => $header,
+    '#rows' =>$rows,
+  );
+  
+	// Looping for filling the table rows
+	while($data = $res->fetchObject()){
+	  
+    $courseName = array(
+      '#type' => 'item',
+      '#title' => t($data -> CourseName),
+    );
+    
+    $courseTitle = array(
+      '#type' => 'item',
+      '#title' => t($data -> Title),
+    );
+    
+    $teachers = array(
+      
+      '#type' => 'select',
+      '#options' => getAllTeachers($data -> CourseName),
+      '#default_value' => getCurrentLead($data -> CourseName),
+      
+    );
+              
+    $form['courses'][] = array(
+      'Course Name' => &$courseName,
+      'Course Title' => &$courseTitle,
+      'Lead' => &$teachers,
+    );
+    
+    $form['courses']['#rows'][] = array(
+      array('data' => &$courseName),
+      array('data' => &$courseTitle),
+      array('data' => &$teachers),
+    );
+    
+    unset($courseName);
+    
+    unset($courseTitle);
+    
+    unset($teachers);
+    
+	  }
+	  
+	  return $form;
+	  
+}
+
+function lead_selection_form($form, &$form_state) {
+  
+    drupal_add_js(drupal_get_path('module', 'lead_selection') . '/lead_selection.js');
+  
+	  //$form_state['results_table'] = createLeadSelectionTable();
+	  $form = createLeadSelectionTable($form, $form_state);
+	  $form_state['rebuild'] = TRUE;
+	  
+    if (!empty($form_state['results_table'])) {
+       
+      $form['results_table'] = array('#markup' => $form_state['results_table']);
+      
+    }
+    
+   $form['actions']['submit'] = array(
+      '#type' => 'submit',
+      '#value' => t('Submit Lead Selections'),
+    );
+    
+	  return $form;
+	  
+
+}
+
+function lead_selection_form_submit($form, &$form_state) {
+
+  for($i = 0; $i < sizeof($form_state['values']['courses']); $i++) {
+    
+    $course = $form['courses']['#rows'][$i][0]['data']['#title'];
+    
+    $teacher = $form_state['values']['courses'][$i]['Lead'];
+    
+    $lead = getCurrentLead($course);
+    
+    if($teacher == 'None' && $lead != 'None')
+    
+    {
+      
+      remove_lead($course, $lead);
+      
+    }
+    
+    elseif($teacher != 'None' && $lead == 'None')
+    
+    {
+      
+      insert_lead($course, $teacher);
+      
+    }
+    
+    elseif($teacher != $lead) {
+      
+      update_lead($course, $lead, $teacher);
+      
+    }
+    
+  }
+	
+	$form_state['rebuild'] = TRUE;
+	
+}
+
+function update_lead($course, $lead, $teacher) {
+  
+  db_query("UPDATE LEAD 
+            SET CWID = '$teacher', CourseName = '$course' 
+            WHERE CWID = '$lead' AND CourseName = '$course'");
+            
+  $res = db_query("SELECT uid 
+                   FROM users AS user JOIN field_data_field_cwid AS field
+                   ON user.uid = field.entity_id
+                   WHERE field.field_cwid_value = '$lead'");
+                   
+  if($data = $res->fetchObject()) {
+    
+    custom_remove_role_from_user($data -> uid, 'lead');
+    
+  }
+  
+  $res = db_query("SELECT uid 
+                   FROM users AS user JOIN field_data_field_cwid AS field
+                   ON user.uid = field.entity_id
+                   WHERE field.field_cwid_value = '$teacher'");
+                   
+  if($data = $res->fetchObject()) {
+    
+    custom_add_role_to_user($data -> uid, 'lead');
+    
+  }
+  
+}
+
+function remove_lead($course, $lead) {
+  
+  db_query("DELETE FROM LEAD
+            WHERE CWID = '$lead' AND CourseName = '$course'");
+                    
+  $res = db_query("SELECT uid 
+                   FROM users AS user JOIN field_data_field_cwid AS field
+                   ON user.uid = field.entity_id
+                   WHERE field.field_cwid_value = '$lead'");
+                   
+  if($data = $res->fetchObject()) {
+    
+    custom_remove_role_from_user($data -> uid, 'lead');
+    
+  }
+  
+}
+
+function insert_lead($course, $teacher) {
+
+  db_query("INSERT INTO LEAD(CWID, CourseName) 
+            VALUES('$teacher', '$course')");
+            
+  $res = db_query("SELECT uid 
+                   FROM users AS user JOIN field_data_field_cwid AS field
+                   ON user.uid = field.entity_id
+                   WHERE field.field_cwid_value = '$teacher'");
+                   
+  if($data = $res->fetchObject()) {
+    
+    custom_add_role_to_user($data -> uid, 'lead');
+    
+  }
+  
+}
+
+/**
+ * Remove a role from a user.
+ *
+ * @param $user
+ *   User object or user ID.
+ * @param $role_name
+ *   String value of role to be removed.
+ */
+function custom_remove_role_from_user($user, $role_name) {
+  // For convenience, we'll allow user ids as well as full user objects.
+  if (is_numeric($user)) {
+    $user = user_load($user);
+  }
+  // Only remove the role if the user already has it.
+  $key = array_search($role_name, $user->roles);
+  if ($key == TRUE) {
+    // Get the rid from the roles table.
+    $roles = user_roles(TRUE);
+    $rid = array_search($role_name, $roles);
+    if ($rid != FALSE) {
+      // Make a copy of the roles array, without the deleted one.
+      $new_roles = array();
+      foreach($user->roles as $id => $name) {
+        if ($id != $rid) {
+          $new_roles[$id] = $name;
+        }
+      }
+      
+      user_save($user, array('roles' => $new_roles));
+      
+    }
+    
+  }
+  
+}
+
+/**
+ * Add a role to a user.
+ *
+ * @param $user
+ *   User object or user ID.
+ * @param $role_name
+ *   String value of role to be added.
+ *
+ * @see http_://drupal.org/node/28379#comment-4277052
+ * @see http_://api.drupal.org/api/drupal/modules--user--user.module/function/user_save
+ */
+function custom_add_role_to_user($user, $role_name) {
+  // For convenience, we'll allow user ids as well as full user objects.
+  if (is_numeric($user)) {
+    $user = user_load($user);
+  }
+  // If the user doesn't already have the role, add the role to that user.
+  $key = array_search($role_name, $user->roles);
+  if ($key == FALSE) {
+    // Get the rid from the roles table.
+    $roles = user_roles(TRUE);
+    $rid = array_search($role_name, $roles);
+    if ($rid != FALSE) {
+      $new_role[$rid] = $role_name;
+      $all_roles = $user->roles + $new_role; // Add new role to existing roles.
+      user_save($user, array('roles' => $all_roles));
+    }
+  }
+}
+
+?>
