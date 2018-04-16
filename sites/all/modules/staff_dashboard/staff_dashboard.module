@@ -143,8 +143,8 @@ function getStatus($id, $start_time, $end_time) {
     if (strtotime($lock_date) > strtotime($current_date)){
     $res = db_query("SELECT entity_id,
             field_time_value, field_time_value2 
-            FROM field_data_field_time AS time NATURAL JOIN field_data_field_roomname AS room
-            WHERE room.field_roomname_tid = " . $id);
+            FROM field_data_field_time AS time NATURAL JOIN field_data_field_roomname AS room, node as n
+            WHERE n.status =1 and room.field_roomname_tid = " . $id);
     while($data = $res->fetchObject()){
 	    $start = $data -> field_time_value;
 	    $end = $data -> field_time_value2;

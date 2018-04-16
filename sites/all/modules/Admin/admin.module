@@ -1,7 +1,6 @@
 <?php
 
 function admin_menu() {
-  
   $items = array();
   
   $items['admin/staff-dashboard'] = array(

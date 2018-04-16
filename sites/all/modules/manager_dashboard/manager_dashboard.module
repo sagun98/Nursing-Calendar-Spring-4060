@@ -50,9 +50,7 @@ function render_manager_calendar() {
   $my_view->pre_execute();
   
   return $my_view->render($my_display_name);
-  
   }
-  
 }
 
 function manager_dashboard_form($form, &$form_state) {
@@ -69,30 +67,64 @@ function managerd_dashboard_alter($form, &$form_state) {
 }
 
 function collided_classroom_sort(&$form_state){
+  drupal_set_message(t('Hitting Accept will delete other classes and publish the Accepted class.<br>
+  However, an email will be sent notifying other users that their classes has been rejected.'), 'warning');
   $output="";
     global $user;
     $rows=array();
-    $header= array("Room Name","Course Name", "Start Date","End Date","\t", "Decision" );
-   
-    $res = db_query("SELECT * FROM collision where user_id ='$user->uid' AND flag = 1");
+    $header= array("Room Name", "Start Date","End Date","Course Name", "Status","User", "CRN");
+    $res = db_query("SELECT * FROM collision where flag=1");
     while($data = $res->fetchObject()){
-      $collided_array = array();
-      $col = db_query("SELECT * FROM collision where collision_id = '$data->collision_id' ");
-      while($coll = $col->fetchObject()){
-        $collided_array[]= $coll->course_name;
-      }
-	    $rows[] = array(
-		     $data->room_name,
-		     $data -> course_name,
-		     $data -> start_time,
-		     $data -> end_time, 
-		     "<br>Collided With<br><br>
-		        $collided_array[0] &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp <a>Accept/Reject</a>
-		        <br> ",
-		     "<a> Accept/ Reject</a>",
+      $collision_id = $data->collision_id;
+	    $sec = db_query("SELECT * FROM collision where flag = 1 AND collision_id = '$collision_id'");
+      while ($dd = $sec->fetchObject()){ 
+      $rows[] = array(
+		    $dd -> room_name,
+		    $dd -> start_time,
+		    $dd -> end_time, 
+		    $dd -> course_name,
+		    "Published",
+		    $dd-> user_name,
+		    $dd->CRN,
   );
-}
-  $output .= theme_table(
+      }
+	    $col = db_query("SELECT * FROM collision where collision_id = '$collision_id' and flag=0 ");
+      while($coll = $col->fetchObject()){
+         $rows[] = array(
+		     "\t",
+		     "\t",
+		      l(
+              t("Accept"), 
+              '/manager/redirect', 
+              array(
+                'attributes' => array(
+                  'class' => array(
+                    'request', 
+                    'request-redirect',
+                  ), 
+                  'id' =>'request',
+                ),
+                'query' => array(
+                  'room_name' => $coll->room_name,
+                  'start_date' => $coll->start_time, 
+                  'end_date' => $coll ->end_time,
+                  'course_name' => $coll -> course_name,
+                  'course_id' => $coll->CRN,
+                  'uid' => $coll ->user_id,
+                  'collision_id' => $coll-> collision_id,
+                ), 
+                'html' => TRUE,
+                )
+              ),
+		     $coll -> course_name, 
+		     "Conflict",
+		     $coll -> user_name,
+		     $coll->CRN,
+  );
+      }
+    }
+
+   $output .= theme_table(
 		    array(
 		      "header" => $header,
 		      "rows" => $rows,
@@ -105,4 +137,6 @@ function collided_classroom_sort(&$form_state){
 	  );
 	  return $output;
 }
+
+
 ?>

@@ -22,7 +22,7 @@ function get_specific_room_to_update(){
  
     $result = $res->fetchField();
     
-  return(trim((explode("-",$result)[$index])));
+    return(trim((explode("-",$result)[$index])));
 }
 
 function update_room_type(){
@@ -96,8 +96,9 @@ function insert_other_collided_class(){
     $stmt = db_query("SELECT tid FROM taxonomy_term_data WHERE name='$room_name'"); 
     $data=$stmt->fetchObject();
     $tid= $data->tid;
+    $GLOBALS['tid'] =$tid ;
     //dpm ($tid);
-  if ($current_status=="Booked"){
+    if ($current_status=="Booked"){
 
     $res = db_query("SELECT n.uid,n.nid
     FROM node as n, field_data_field_roomname as rn,
@@ -149,13 +150,11 @@ function insert_other_collided_class(){
         }
      }
     
-    
         if (!$enter_flag){
-            $sql="INSERT INTO collision (CRN, user_id, user_name, course_name, room_name, start_time, end_time, collision_id, flag) VALUES ($main_course_id, $main_uid, '$main_username','$main_course_name' ,'$room_name' ,'$start_time', '$end_time', '$main_nid', 1)";
+            $sql="INSERT INTO collision (CRN, user_id, user_name, course_name, room_name, start_time, end_time,nid, collision_id, flag) VALUES ($main_course_id, $main_uid, '$main_username','$main_course_name' ,'$room_name' ,'$start_time', '$end_time', '$main_nid' ,'$main_nid', 1)";
             $result = db_query($sql);
         }
   }
-
 
 
 // SELECT n.uid,n.nid
@@ -181,23 +180,7 @@ function insert_other_collided_class(){
 // n.nid=t.entity_id and 
 // '2018-04-13 01:00:00' = t.field_time_value  and '2018-04-13 02:00:00' = t.field_time_value2" 
 
-// SELECT n.uid,n.type
-// FROM node as n, field_data_field_roomname as rn,
-// field_data_field_time as t
-// WHERE status = 1
-// AND n.type = 'submit_room_request'
-// AND n.nid = rn.entity_id
-// AND rn.field_roomname_tid = 1
-// AND n.nid = t.entity_id
-// AND (((TIME('2018-04-13 03:30:00') = t.field_time_value
-// OR TIME('2018-04-13 03:30:00') > t.field_time_value)
-// AND (TIME('2018-04-13 03:30:00') = t.field_time_value2
-// OR TIME('2018-04-13 03:30:00') < t.field_time_value2))
-// OR
-// ((TIME('2018-04-13 04:30:00') = t.field_time_value
-// OR TIME('2018-04-13 04:30:00') > t.field_time_value)
-// AND (TIME('2018-04-13 04:30:00') = t.field_time_value2
-// OR TIME('2018-04-13 04:30:00') < t.field_time_value2))) 
+
 
     }
 
@@ -217,11 +200,14 @@ function insert_collisions(){
     
     if ($current_status=="Booked"){
          $collision_id =$GLOBALS['collision_id'];
-        $sql="INSERT INTO collision (CRN, user_id, user_name, course_name, room_name, start_time, end_time, collision_id, flag) VALUES ($crn, $uid, '$user_name','$course_name' ,'$room_name' ,'$start_time', '$end_time', '$collision_id', 0)";
+    
+        $sql="INSERT INTO collision (CRN, user_id, user_name, course_name, room_name, start_time, end_time,collision_id,nid, flag) VALUES ($crn, $uid, '$user_name','$course_name' ,'$room_name' ,'$start_time', '$end_time','$collision_id',66666, 0)";
         $result = db_query($sql);
     }
 }
 
+	
+	
 
 
 function custom_views_query_alter(&$view, &$query) {
@@ -288,7 +274,6 @@ function custom_views_query_alter(&$view, &$query) {
   {
     drupal_add_js(drupal_get_path('module', 'custom') . '/calendarJS.js');
   }
-  
 }
 
 function custom_form_alter(&$form, &$form_state, $form_id) {
@@ -321,6 +306,7 @@ function custom_form_alter(&$form, &$form_state, $form_id) {
            insert_other_collided_class();
            insert_collisions();
            create_save_new_node($form,$form_state,$_GET["room_name"],$_GET["start_date"],$_GET["end_date"], $_GET["course_name"], $_GET["course_id"]);
+           
         }
     }    
     

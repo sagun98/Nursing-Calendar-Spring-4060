@@ -1,0 +1,3 @@
+name = Manager Redirect
+description = A redirected module to handle the manager dashboard requests
+core = 7.x
