@@ -1,3 +1,7 @@
 name = Staff dashboard
 description = Dashboard for requesting rooms
 core = 7.x
+
+stylesheets[all][] = ./css/staff_dashboard.css
+
+scripts[] = ./scripts/staff_dashboard_script.js 

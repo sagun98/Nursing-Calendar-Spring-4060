@@ -56,9 +56,7 @@ function get_classes(&$form_state){
                      JOIN field_data_field_cwid AS fdfc ON CWID = fdfc.field_cwid_value  
                      JOIN users AS U ON fdfc.entity_id = U.uid 
                      WHERE U.uid = '$user->uid'");
-                        
   }
-
 
   while($data = $res->fetchObject()){
 	  $rows[$count] = array(

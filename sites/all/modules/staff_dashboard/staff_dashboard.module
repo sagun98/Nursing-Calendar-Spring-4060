@@ -1,24 +1,4 @@
 <?php
-function staff_dashboard_form_alter(&$form, &$form_state, $form_id) {
-
-  /** //dpm($form_id);
-    if ($form_id=="staff_dashboard_node_form"){
-        $form['title']['#type'] = 'hidden';
-        $form['title']['#value'] = "Search Rooms For Request";
-        select_every_room();
-        staff_dashboard_form($form,$form_state);
-        echo "<hr />";
-  }*/
-}
-
-function select_every_room(){
-    $res = db_query("SELECT name 
-            FROM taxonomy_term_data");
-             $result = $res->fetchAll();
-             foreach ($result as $value) {
-               dpm($value->name);
-             };
-}
 
 function staff_dashboard_menu() {
   
@@ -30,6 +10,14 @@ function staff_dashboard_menu() {
     'page callback' => 'drupal_get_form', //this is the function that will be called when the page is accessed.  for a form, use drupal_get_form
     'page arguments' => array('staff_dashboard_form'), //put the name of the form here
     'access arguments' => array('view_staff_dashboard'),
+  );
+  
+
+  $items['staff/dashboard/%ctools_js'] = array(
+    'page callback' => 'staff_dashboard_callback',
+    'page arguments' => array(1),
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
   );
   
   // For the default local task, we need very little configuration, as the
@@ -50,111 +38,47 @@ function staff_dashboard_menu() {
     'page arguments' => array('staff_collision_form'), //put the name of the form here
     'access arguments' => array('view_collision_dashboard'),
     'weight' => 2,  
-    
   );
   
   return $items;
   
 }
 
-function staff_dashboard_form($form, &$form_state) {
-
-$format = 'Y-m-d H:i';
-$timezone= drupal_get_user_timezone();
-$form['start_date'] = array(
-    '#type' => 'date_popup',
-    '#title' => t('Start Time'),
-    '#default_value' => date("Y-m-d H:i", round(strtotime("now") / 900) * 900),
-    '#date_format' => $format,
-    '#required' => TRUE,
-    '#date_label_position' => 'within',
-    '#date_timezone' => $timezone,
-    '#date_increment' => 15,
-    '#date_year_range' => '-3:+3',
-    // Use 'timepicker' option provided by the Date Popup Timepicker module.
-    // #timepicker property itself is provided by the Date Popup module.
-    '#timepicker' => 'timepicker',
-    // New #timepicker_options property handled by the Date Popup Timepicker
-    // module and lets to customize timepicker options.
-    '#timepicker_options' => array(
-      'rows' => 6,
-      'minutes' => array(
-        'starts' => 0,
-        'ends' => 56,
-        'interval' => 4,
-      ),
-      'showCloseButton' => TRUE,
-      'closeButtonText' => t('Close'),
-      ),
-      
-    );
-    
-  $form['end_date'] = array(
-    '#type' => 'date_popup',
-    '#title' => t('End Time'),
-    '#default_value' => date("Y-m-d H:i", round(strtotime("+1 hour") / 900) * 900),
-    '#date_format' => "H:i",
-    '#date_label_position' => 'within',
-    '#date_timezone' => $timezone,
-    '#required' => TRUE,
-    '#date_increment' => 15,
-    '#date_year_range' => '-3:+3',
-    '#timepicker' => 'timepicker',
-    '#timepicker_options' => array(
-      'rows' => 6,
-      'minutes' => array(
-        'starts' => 0,
-        'ends' => 56,
-        'interval' => 4,
-      ),
-      'showCloseButton' => TRUE,
-      'closeButtonText' => t('Close'),
-      ),
-      
-    );
-
-
-//         NURS 2000 - Nursing Concepts|NURS 2000 - Nursing Concepts
-//         NURS 2080 - Basic Principles of Pharmacology|NURS 2080 - Basic Principles of Pharmacology
-//         NURS 2004 - Health Assessment|NURS 2004 - Health Assessment
-//         NURS 2009 - Fundamentals of Professional Nursing Practice|NURS 2009 - Fundamentals of Professional Nursing Practice
-//         NURS 2011 - Introduction to Gerontological Nursing|NURS 2011 - Introduction to Gerontological Nursing
-//         NURS 2013 - Computing for Nurses|NURS 2013 - Computing for Nurses
-//         NURS 3009 - Adult Health Nursing 1|NURS 3009 - Adult Health Nursing 1
-//         NURS 3010 - Mental Health Nursing|NURS 3010 - Mental Health Nursing
-//         NURS 3011 - Nursing Synthesis 1|NURS 3011 - Nursing Synthesis 1
-//         NURS 3028 - Adult Health Nursing 2|NURS 3028 - Adult Health Nursing 2
-//         NURS 3029 - Maternal Child Health Nursing|NURS 3029 - Maternal Child Health Nursing
-//         NURS 3030 - Nursing Synthesis 2|NURS 3030 - Nursing Synthesis 2
-//         NURS 4000 - Adult Health Nursing 3|NURS 4000 - Adult Health Nursing 3
-//         NURS 4001 - Nursing Research: Evidence Based Practice|NURS 4001 - Nursing Research: Evidence Based Practice
-//         NURS 4002 - Nursing Synthesis 3|NURS 4002 - Nursing Synthesis 3
-//         NURS 4066 - Nursing Management|NURS 4066 - Nursing Management
-//         NURS 4067 - Public Health Nursing|NURS 4067 - Public Health Nursing
-
-
-    // Get all the course name for the current user
-    $course_name = get_courses_current_user();
-    
-    $form['selected'] = array(
-      '#type' => 'select',
-      '#title' => t('Course Name (Optional)'),
-      '#options' => $course_name,
-      '#default_value' => "Select Your Course Name",
-      '#description' => t('Enter the name of the course that you want to book classroom'),
-  );
+function _staff_dashboard_make_link($link_text = '') {
   
-    $form['actions']['submit'] = array(
-      '#type' => 'submit',
-      '#value' => t('Search for Rooms'),
-    );
-      
-    if (!empty($form_state['results_table'])) {
-      $form['results_table'] = array('#markup' => $form_state['results_table']);
+  // Set a default value if no text in supplied.
+  
+  if (empty($link_text)) {
+    
+    $link_text = 'Schedule Courses';
+    
   }
-  return $form;
+
+  return '<div id="schedule-link" >' .l($link_text, 'staff/dashboard/nojs', array('attributes' => array('class' => 'ctools-use-modal'))) . '</div>';
+  
 }
-//}
+
+function get_crns_by_course($courses) {
+  
+  $allCRNS = array();
+
+  foreach($courses as $course) {
+  
+    $res = db_query("SELECT CourseName, CourseID
+            FROM COURSE
+            WHERE CourseName = '$course'");
+
+    while($data = $res -> fetchObject()) {
+      
+      $allCRNS[$data -> CourseName . "-" . $data -> CourseID] = $data -> CourseName . "-" . $data -> CourseID;
+      
+    } 
+    
+  }
+
+  return $allCRNS;
+  
+}
 
 function check_role($userRoles, $role) {
   $isRole = false;
@@ -166,43 +90,49 @@ function check_role($userRoles, $role) {
     return $isRole;
 }
 
-
 function get_courses_current_user(){
+	
     $courses= array();
-    $semester= array();
+	
     global $user;
+    
     if(check_role($user -> roles, "administrator") || check_role($user -> roles, "manager")) {
     
-    $result = db_query("SELECT CourseID, CourseName, Semester
-                          FROM COURSE");
-      
+      $result = db_query("SELECT CourseID, CourseName, Semester FROM COURSE");
+    
     }
     
     else {
       
       $result = db_query("SELECT C.CourseID, C.CourseName, C.Semester
-                          FROM COURSE AS C, TEACHES AS T, USER AS U
-                          WHERE C.CourseID = T.CourseID
-                          AND T.CWID = U.CWID
-                          AND U.Username =  '$user->name'");
-                        
+                          FROM LEAD L LEFT JOIN COURSE C ON C.CourseName = L.CourseName
+                          JOIN field_data_field_cwid AS fdfc ON CWID = fdfc.field_cwid_value  
+                          JOIN users AS U ON fdfc.entity_id = U.uid 
+                          AND U.uid = '$user->uid'");
+    
     }
     
 	  // Looping for filling the table rows
 	  while($data = $result->fetchObject()){
+	    
 	    $course_name = $data->CourseName;
-	    $courses[$course_name]=$course_name;
-	    // $courses[]=array($course_name => $course_name); 
-	    //$semester['$data-> Semester'] = $data-> Semester;
+	    
+	    $courses[$course_name] = $course_name;
+	    
 	  }
 	  
 	  return $courses;
-    
-    
 }
+
+function getNextCourse($form, &$form_state) {
+  
+  dpm($form_state);
+  
+}
+
 function getStatus($id, $start_time, $end_time) {
     $status = true;
-    $lock = db_query("SELECT * FROM field_revision_field_lock_date_time WHERE  entity_id=(SELECT MAX(entity_id) FROM field_revision_field_lock_date_time)");
+    $lock = db_query("SELECT * FROM field_revision_field_lock_date_time WHERE entity_id=(SELECT MAX(entity_id) FROM field_revision_field_lock_date_time)");
     $lock_data = $lock->fetchObject();
     $lock_date = $lock_data->field_lock_date_time_value;
     $current_date = date('Y-m-d H:i:s', time());
@@ -235,72 +165,209 @@ function getStatus($id, $start_time, $end_time) {
     }
 }
 
-function getAllClasses($start_time, $end_time,$course_name, &$form_state) {
-    $output = "";
-    $end_time = substr($start_time, 0, (strrpos($start_time, " "))) . " " . $end_time;
-    $res = db_query("SELECT name, tid FROM taxonomy_term_data");
-	  $header = array('Room Name', 'Status', 'Book Room');
-	  $rows = array();
-	  // Looping for filling the table rows
-	  while($data = $res->fetchObject()){
-	       $status = getStatus($data->tid, $start_time, $end_time);
-	       if($status == "Available") {
-	         $book = "Book Room";
-	       }
-	       elseif ($status == "Locked"){
-	         $book = "Booking Closed( Manager Will Handle the request)"; 
-	       }
-	       else {
-	         $book = "Request";
-	       }  
-  	     $rows[] = array(
-		     $data->name,
-		     $status,
-		     l(
-              t($book), 
-              '/node/add/submit-room-request', 
-              array(
-                'attributes' => array(
-                  'class' => array(
-                    'request', 
-                    'request-class',
-                  ), 
-                  'id' =>'request',
-                ),
-                'query' => array(
-                  'room_name' => $data->name,
-                  'start_date' => $start_time, 
-                  'end_date' => $end_time,
-                  'status' => $status,
-                  'course_name' => $course_name,
-                ), 
-                'html' => TRUE,
-                )
-              )
-            );
-        }
+function createStaffDashboardTable($form, &$form_state) {
+  
+	$res = db_query("SELECT name, tid FROM taxonomy_term_data");
+    
+	$courses = get_courses_current_user();
+	
+	$courses = get_crns_by_course($courses);
+	
+	if($courses > 0) {
+			
+			$multiple = TRUE;
+			
+		}
+                     
+	$header = array('Room Name', '', 'Select Course(s) to Schedule');
+	
+	$rows = array();
+	
+	$count = 0;
+	
+	$form['table']['rooms'] = array(
+    '#prefix' => '<div id="rooms">',
+    '#suffix' => '</div>',
+    '#tree' => TRUE,
+    '#theme' => 'table',
+    '#header' => $header,
+    '#rows' =>$rows,
+  );
+  
+	// Looping for filling the table rows
+	while($data = $res->fetchObject()){
 
-	  // Output of table with the paging
-	  $output .= theme_table(
-		    array(
-		      "header" => $header,
-		      "rows" => $rows,
-		      "attributes" => array(""),
-		      "sticky" => true, // Table header will be sticky
-		      "caption" => "",
-		      "colgroups" => array(),
-		      "empty" => t("Table has no data!") // The message to be displayed if table is empty
-		    )
-	  );
-	  return $output;
+		if($courses > 0) {
+			
+			$multiple = TRUE;
+			
+		}
+	  
+		$roomName = array(
+		  
+		  '#type' => 'item',
+		  
+		  '#title' => t($data -> name),
+		  
+		);
+		
+		$button = array(
+		  
+		  '#type' => 'item',
+		  
+		  '#markup' => '<button type="button" class="btn btn-primary" onclick="collapse(' . $count . ')">View Courses</button>',
+		  
+		);
+		
+		$courseList = array(
+		  
+			'#type' => 'select',
+		  
+			'#options' => $courses,
+
+      '#size' => $multiple ? count($courses) / 2 : 0,
+		  
+		);
+              
+		$form['table']['rooms'][] = array(
+		  
+		  'Room Name' => &$roomName,
+		  
+		  '' => &$button,
+		  
+		  'Select Course' => &$courseList,
+		  
+		);
+		
+		$form['table']['rooms']['#rows'][] = array(
+		  
+		  array('data' => &$roomName),
+		  
+		  array('data' => &$button),
+		  
+		  array('data' => &$courseList),
+		  
+		);
+    
+		unset($roomName);
+		
+		unset($button);
+		
+		unset($courseList);
+		
+		$count++;
+		
+	}
+	  
+	return $form;
 }
 
-function form_example_form_validate($form, &$form_state) {
+function staff_dashboard_callback($ajax) {
+  
+  if ($ajax) {
+    
+    ctools_include('ajax');
+    
+    ctools_include('modal');
+
+    $form_state = array(
+      
+      'ajax' => TRUE,
+      
+      'title' => t('Schedule Classes'),
+      
+    );
+
+    // Use ctools to generate ajax instructions for the browser to create
+    // a form in a modal popup.
+    
+    $output = ctools_modal_form_wrapper('schedule_form', $form_state);
+
+    // If the form has been submitted, there may be additional instructions
+    // such as dismissing the modal popup.
+    
+    if (!empty($form_state['ajax_commands'])) {
+      
+      $output = $form_state['ajax_commands'];
+      
+    }
+
+    // Return the ajax instructions to the browser via ajax_render().
+    
+    print ajax_render($output);
+    
+    drupal_exit();
+    
+  }
+  
+  else {
+    
+    return drupal_get_form('schedule_form');
+    
+  }
+  
+}
+
+function staff_dashboard_form($form, &$form_state) {
+  
+  ctools_include('modal');
+  
+  ctools_modal_add_js();
+  
+	$form = createStaffDashboardTable($form, $form_state);
+	
+  $form['actions']['submit'] = array(
+	  
+    '#type' => 'submit',
+      
+    '#value' => t('Schedule Class'),
+    
+    '#submit' => _staff_dashboard_make_link('Schedule Courses'),
+      
+  );
+    
+  $form['options']['reset'] = array(
+    
+    '#type' => 'submit',
+  
+    '#value' => t('Reset Selection'),
+  
+    '#submit' => array('staff_dashboard_form_reset'),
+  
+  );
+  
+  $form['Link'] = array(
+    
+    '#type' => 'item',
+    
+    '#markup' => _staff_dashboard_make_link('Schedule Courses'),
+    
+    );
+	
+	return $form;
+
+}
+
+function staff_dashboard_form_reset($form, &$form_state) {
+  
+  $form_state['rebuild'] = FALSE;
+  
 }
 
 function staff_dashboard_form_submit($form, &$form_state) {
-	$form_state['results_table'] = getAllClasses($form_state['values']['start_date'], $form_state['values']['end_date'],$form_state['values']['selected'],$form_state);
-  $form_state['rebuild'] = TRUE;
+
+  $new_form_state = array();
+  
+  // list path arguments that usually go into form_id_2 constructor from path2
+  $new_form_state['build_info']['args'] = array();
+  
+  $new_form_state['method'] = 'post';
+  
+  // list values you want to pass.
+ $new_form_state['currentCourse'] = getNextCourse($form, $form_state);
+  
+  drupal_add_js('document.getElementById("schedule-link").click()', 'inline');
+	
 }
 
 ?>

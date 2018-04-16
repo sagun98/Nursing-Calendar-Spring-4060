@@ -28,23 +28,37 @@ function collided_classroom(&$form_state){
   $output="";
     global $user;
     $rows=array();
-    $header= array("Room Name","Course Name", "Start Date","End Date");
-   
-    $res = db_query("SELECT * FROM collision where user_id ='$user->uid' AND flag = 1");
+    $header= array("Room Name", "Start Date","End Date","Course Name", "Status","User", "CRN");
+    $res = db_query("SELECT * FROM collision where user_id ='$user->uid' AND flag = 0");
     while($data = $res->fetchObject()){
-      $collided_array = array();
-      $col = db_query("SELECT * FROM collision where collision_id = '$data->collision_id' ");
-      while($coll = $col->fetchObject()){
-        $collided_array[]= $coll->course_name;
-      }
-	    $rows[] = array(
-		     $data->room_name,
-		     $data -> course_name,
-		     $data -> start_time,
-		     $data -> end_time, 
-		     "<br>Collided With<br><br>$collided_array[0] <br> $collided_array[1]",
+      $collision_id = $data->collision_id;
+    
+	    $sec = db_query("SELECT * FROM collision where flag = 1 AND collision_id = '$collision_id'");
+      while ($dd = $sec->fetchObject()){ 
+      $rows[] = array(
+		    $dd -> room_name,
+		    $dd -> start_time,
+		    $dd -> end_time, 
+		    $dd -> course_name,
+		    "Published",
+		    $dd-> user_name,
+		    $dd->CRN,
   );
-}
+      }
+	    $col = db_query("SELECT * FROM collision where collision_id = '$collision_id' and flag=0 ");
+      while($coll = $col->fetchObject()){
+         $rows[] = array(
+		     "\t",
+		     "\t",
+		     "\t",
+		     $coll -> course_name, 
+		     "Conflict",
+		     $coll -> user_name,
+		     $coll->CRN,
+  );
+      }
+    }
+
    $output .= theme_table(
 		    array(
 		      "header" => $header,
@@ -58,4 +72,8 @@ function collided_classroom(&$form_state){
 	  );
 	  return $output;
 }
+
+
+    
+    
 ?>

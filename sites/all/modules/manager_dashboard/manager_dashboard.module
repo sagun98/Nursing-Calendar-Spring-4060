@@ -1,0 +1,108 @@
+<?php
+
+function manager_dashboard_menu() {
+  $items = array();
+  $items['manager/dashboard'] = array(
+    'title' => 'Manager Dashboard',
+    'description' => 'A dashboard for managers',
+    'page callback' => 'drupal_get_form', //this is the function that will be called when the page is accessed.  for a form, use drupal_get_form
+    'page arguments' => array('manager_dashboard_form'), //put the name of the form here
+    'access arguments' => array('view_collision_dashboard'),
+  );
+  
+  // For the default local task, we need very little configuration, as the
+  // callback and other conditions are handled by the parent callback.
+  $items['manager/dashboard/default'] = array(
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'title' => 'Collisions',
+    'description' => 'A dashboard for Manager',
+    'access arguments' => array('view_collision_dashboard'),
+    'weight' => 1,
+    
+  );
+  
+  $items['manager/dashboard/lead-selection'] = array( //this creates a URL that will call this form at "examples/form-example"
+    'type' => MENU_LOCAL_TASK,
+    'title' => 'Lead Selection', //page title
+    'description' => 'A dashboard for staff displaying all the collisions',
+    'page callback' => 'drupal_get_form', //this is the function that will be called when the page is accessed.  for a form, use drupal_get_form
+    'page arguments' => array('lead_selection_form'), //put the name of the form here
+    'access arguments' => array('lead_selection'),
+    'weight' => 2,  
+    
+  );
+  
+  return $items;
+}
+
+function render_manager_calendar() {
+
+  $my_view_name = 'manger_calendar_view';
+  
+  $my_display_name = 'manager_calendar_view';
+
+  $my_view = views_get_view($my_view_name);
+  
+  if ( is_object($my_view) ) { 
+    
+  $my_view->set_display($my_display_name);
+  
+  $my_view->pre_execute();
+  
+  return $my_view->render($my_display_name);
+  
+  }
+  
+}
+
+function manager_dashboard_form($form, &$form_state) {
+  $form_state['results_table'] = collided_classroom_sort($form_state);
+  $form_state['rebuild'] = TRUE;
+     if (!empty($form_state['results_table'])) {
+      $form['results_table'] = array('#markup' => $form_state['results_table']);
+  }
+  return $form;
+}
+
+function managerd_dashboard_alter($form, &$form_state) {
+ 
+}
+
+function collided_classroom_sort(&$form_state){
+  $output="";
+    global $user;
+    $rows=array();
+    $header= array("Room Name","Course Name", "Start Date","End Date","\t", "Decision" );
+   
+    $res = db_query("SELECT * FROM collision where user_id ='$user->uid' AND flag = 1");
+    while($data = $res->fetchObject()){
+      $collided_array = array();
+      $col = db_query("SELECT * FROM collision where collision_id = '$data->collision_id' ");
+      while($coll = $col->fetchObject()){
+        $collided_array[]= $coll->course_name;
+      }
+	    $rows[] = array(
+		     $data->room_name,
+		     $data -> course_name,
+		     $data -> start_time,
+		     $data -> end_time, 
+		     "<br>Collided With<br><br>
+		        $collided_array[0] &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp <a>Accept/Reject</a>
+		        <br> ",
+		     "<a> Accept/ Reject</a>",
+  );
+}
+  $output .= theme_table(
+		    array(
+		      "header" => $header,
+		      "rows" => $rows,
+		      "attributes" => array(""),
+		      "sticky" => false, // Table header will be sticky
+		      "caption" => "",
+		      "colgroups" => array(),
+		      "empty" => t("Table has no data!") // The message to be displayed if table is empty
+		    )
+	  );
+	  return $output;
+}
+?>

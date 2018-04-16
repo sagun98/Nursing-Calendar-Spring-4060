@@ -1,0 +1,4 @@
+name = Schedule
+description = Form used to schedule classes
+core = 7.x
+dependencies[]=ctools

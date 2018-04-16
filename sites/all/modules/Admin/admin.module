@@ -1,36 +1,167 @@
-<?php 
+<?php
 
 function admin_menu() {
   
   $items = array();
-
-  // For the default local task, we need very little configuration, as the
-  // callback and other conditions are handled by the parent callback.
-  $items['admin-dashboard'] = array(
-    'title' => 'Admin Dashboard',
-    'description' => 'A dashboard to approve or reject requests',
-    'page arguments' => array('admin-dashboard'), //put the name of the form here
-  );
   
-  $items['admin-dashboard/Requests'] = array(
-    'type' => MENU_DEFAULT_LOCAL_TASK,
-    'title' => 'Event Requests',
-    'description' => 'A dashboard to approve or reject requests',
-    'weight' => 1,
-  );
-  
-  $items['admin-dashboard/lead/selection'] = array( //this creates a URL that will call this form at "examples/form-example"
-    'type' => MENU_LOCAL_TASK,
-    'title' => 'Lead Selection', //page title
-    'description' => 'A page to select the lead teacher for a course',
+  $items['admin/staff-dashboard'] = array(
+    'title' => 'Staff Dashboard',
+    'description' => 'A dashboard for staff',
     'page callback' => 'drupal_get_form', //this is the function that will be called when the page is accessed.  for a form, use drupal_get_form
-    'page arguments' => array('lead_selection_form'), //put the name of the form here
-    'access arguments' => array('lead_selection'),
-    'weight' => 4,  
+    'page arguments' => array('admin_form'), //put the name of the form here
+    'access arguments' => array('view_staff_dashboard'),
   );
   
   return $items;
   
+}
+
+function admin_form($form, &$form_state) {
+
+$format = 'Y-m-d H:i';
+$timezone= drupal_get_user_timezone();
+$form['start_date'] = array(
+    '#type' => 'date_popup',
+    '#title' => t('Start Time'),
+    '#default_value' => date("Y-m-d H:i", round(strtotime("now") / 900) * 900),
+    '#date_format' => $format,
+    '#required' => TRUE,
+    '#date_label_position' => 'within',
+    '#date_timezone' => $timezone,
+    '#date_increment' => 15,
+    '#date_year_range' => '-3:+3',
+    // Use 'timepicker' option provided by the Date Popup Timepicker module.
+    // #timepicker property itself is provided by the Date Popup module.
+    '#timepicker' => 'timepicker',
+    // New #timepicker_options property handled by the Date Popup Timepicker
+    // module and lets to customize timepicker options.
+    '#timepicker_options' => array(
+      'rows' => 6,
+      'minutes' => array(
+        'starts' => 0,
+        'ends' => 56,
+        'interval' => 4,
+      ),
+      'showCloseButton' => TRUE,
+      'closeButtonText' => t('Close'),
+      ),
+      
+    );
+    
+  $form['end_date'] = array(
+    '#type' => 'date_popup',
+    '#title' => t('End Time'),
+    '#default_value' => date("Y-m-d H:i", round(strtotime("+1 hour") / 900) * 900),
+    '#date_format' => "H:i",
+    '#date_label_position' => 'within',
+    '#date_timezone' => $timezone,
+    '#required' => TRUE,
+    '#date_increment' => 15,
+    '#date_year_range' => '-3:+3',
+    '#timepicker' => 'timepicker',
+    '#timepicker_options' => array(
+      'rows' => 6,
+      'minutes' => array(
+        'starts' => 0,
+        'ends' => 56,
+        'interval' => 4,
+      ),
+      'showCloseButton' => TRUE,
+      'closeButtonText' => t('Close'),
+      ),
+      
+    );
+
+    // Get all the course name for the current user
+    $course_name = get_courses_current_user();
+    
+    $course_name = get_crns_by_course($course_name);
+    
+    $form['selected'] = array(
+      '#type' => 'select',
+      '#title' => t('Course Name'),
+      '#options' => $course_name,
+      '#description' => t('Enter the name of the course that you want to book classroom'),
+  );
+  
+    $form['actions']['submit'] = array(
+      '#type' => 'submit',
+      '#value' => t('Search for Rooms'),
+    );
+      
+    if (!empty($form_state['results_table'])) {
+      $form['results_table'] = array('#markup' => $form_state['results_table']);
+  }
+  return $form;
+}
+//}
+
+function getAllClasses($start_time, $end_time,$course_name, &$form_state) {
+    $output = "";
+    $end_time = substr($start_time, 0, (strrpos($start_time, " "))) . " " . $end_time;
+    $res = db_query("SELECT name, tid FROM taxonomy_term_data");
+	  $header = array('Room Name', 'Status', 'Book Room');
+	  $rows = array();
+	  // Looping for filling the table rows
+	  while($data = $res->fetchObject()){
+	       $status = getStatus($data->tid, $start_time, $end_time);
+	       if($status == "Available") {
+	         $book = "Book Room";
+	       }
+	       elseif ($status == "Locked"){
+	         $book = "Booking Closed( Manager Will Handle the request)"; 
+	       }
+	       else {
+	         $book = "Request";
+	       }  
+	       
+	       $parts =explode("-",$course_name);
+  	     $rows[] = array(
+		     $data->name,
+		     $status,
+		     l(
+              t($book), 
+              '/node/add/submit-room-request', 
+              array(
+                'attributes' => array(
+                  'class' => array(
+                    'request', 
+                    'request-class',
+                  ), 
+                  'id' =>'request',
+                ),
+                'query' => array(
+                  'room_name' => $data->name,
+                  'start_date' => $start_time, 
+                  'end_date' => $end_time,
+                  'status' => $status,
+                  'course_name' => $parts[0],
+                  'course_id' => $parts[1],
+                ), 
+                'html' => TRUE,
+                )
+              )
+            );
+        }
+
+	  // Output of table with the paging
+	  $output .= theme_table(
+		    array(
+		      "header" => $header,
+		      "rows" => $rows,
+		      "attributes" => array(""),
+		      "sticky" => true, // Table header will be sticky
+		      "caption" => "",
+		      "colgroups" => array(),
+		      "empty" => t("Table has no data!") // The message to be displayed if table is empty
+		    )
+	  );
+	  return $output;
+}
+
+function admin_form_submit($form, &$form_state) {
+	$form_state['results_table'] = getAllClasses($form_state['values']['start_date'], $form_state['values']['end_date'], $form_state['values']['selected'], $form_state);
+  $form_state['rebuild'] = TRUE;
 }
 
 ?>

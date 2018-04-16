@@ -1,5 +1,4 @@
 name = Staff collision
 description = Dashboard for displaying all the collided classrooms
 core = 7.x
-
 stylesheets[all][] = css/mystyles.css

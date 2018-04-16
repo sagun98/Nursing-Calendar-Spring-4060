@@ -1,0 +1,21 @@
+#rooms tr > th {
+    
+    width: 30%;
+    
+}
+
+#rooms td > .form-checkboxes {
+    
+    height: 8em;
+
+    overflow-y: scroll;
+    
+    background-color: white;
+    
+}
+
+#rooms .form-checkboxes > .form-item.form-type-checkbox.checkbox {
+    
+   display: inline !important;
+    
+}
