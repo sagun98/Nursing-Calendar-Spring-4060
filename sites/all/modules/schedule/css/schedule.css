@@ -1,0 +1,23 @@
+#edit-courses.form-checkboxes {
+    
+    width: 30%;
+    
+    height: 6em;
+
+    overflow-y: auto;
+    
+    background-color: white;
+    
+}
+
+#edit-courses.form-checkboxes > .form-item.form-type-checkbox.checkbox {
+    
+   display: inline !important;
+    
+}
+
+.form-control.form-select {
+    
+    width: 50%;
+    
+}
