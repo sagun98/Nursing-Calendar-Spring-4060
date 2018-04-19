@@ -1,22 +1,31 @@
 window.onload = function() {
+        
+    var allInputs = document.getElementsByTagName('input');
     
-    var allBoxes = document.querySelectorAll('#rooms td select.form-control.form-select');
-
-    for(var i = 0; i < allBoxes.length; i++)
-        allBoxes[i].style.display = 'none';
+    for(var i = 0; i < allInputs.length; i++) {
+        
+        if(allInputs[i].type == 'checkbox' && allInputs[i].name.includes('[Select Course][' + allInputs[i].value + '-All' + ']')) {
+            
+            allInputs[i].setAttribute('onclick', 'checkUncheckAll(this, "' + allInputs[i].value + '");');
+            
+        }
+        
+    }
     
 }
 
-function collapse($id) {
+function checkUncheckAll(theElement, course) {
     
-    $id = "edit-rooms-" + $id + "-select-course";
-    
-    var checkbox = document.getElementById($id);
-    
-    if(checkbox.style.display == 'none') 
-        checkbox.style.display = 'block';
+    var theForm = theElement.form, z = 0;
+      
+    for(z=0; z < theForm.length; z++){
+          
+        if(theForm[z].type == 'checkbox' && theForm[z].name.includes('courses')) {
 
-    else
-        checkbox.style.display = 'none';
-    
+            theForm[z].checked = theElement.checked; 
+
+        }
+        
+    }
+      
 }

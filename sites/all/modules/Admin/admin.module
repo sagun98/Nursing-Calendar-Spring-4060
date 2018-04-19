@@ -10,9 +10,7 @@ function admin_menu() {
     'page arguments' => array('admin_form'), //put the name of the form here
     'access arguments' => array('view_staff_dashboard'),
   );
-  
   return $items;
-  
 }
 
 function admin_form($form, &$form_state) {
@@ -82,11 +80,17 @@ $form['start_date'] = array(
       '#options' => $course_name,
       '#description' => t('Enter the name of the course that you want to book classroom'),
   );
-  
+    
+    $form['support'] = array(
+    '#type' => 'link',
+    '#size' => 20,
+  );
+
     $form['actions']['submit'] = array(
       '#type' => 'submit',
       '#value' => t('Search for Rooms'),
     );
+    
       
     if (!empty($form_state['results_table'])) {
       $form['results_table'] = array('#markup' => $form_state['results_table']);
@@ -94,70 +98,6 @@ $form['start_date'] = array(
   return $form;
 }
 //}
-
-function getAllClasses($start_time, $end_time,$course_name, &$form_state) {
-    $output = "";
-    $end_time = substr($start_time, 0, (strrpos($start_time, " "))) . " " . $end_time;
-    $res = db_query("SELECT name, tid FROM taxonomy_term_data");
-	  $header = array('Room Name', 'Status', 'Book Room');
-	  $rows = array();
-	  // Looping for filling the table rows
-	  while($data = $res->fetchObject()){
-	       $status = getStatus($data->tid, $start_time, $end_time);
-	       if($status == "Available") {
-	         $book = "Book Room";
-	       }
-	       elseif ($status == "Locked"){
-	         $book = "Booking Closed( Manager Will Handle the request)"; 
-	       }
-	       else {
-	         $book = "Request";
-	       }  
-	       
-	       $parts =explode("-",$course_name);
-  	     $rows[] = array(
-		     $data->name,
-		     $status,
-		     l(
-              t($book), 
-              '/node/add/submit-room-request', 
-              array(
-                'attributes' => array(
-                  'class' => array(
-                    'request', 
-                    'request-class',
-                  ), 
-                  'id' =>'request',
-                ),
-                'query' => array(
-                  'room_name' => $data->name,
-                  'start_date' => $start_time, 
-                  'end_date' => $end_time,
-                  'status' => $status,
-                  'course_name' => $parts[0],
-                  'course_id' => $parts[1],
-                ), 
-                'html' => TRUE,
-                )
-              )
-            );
-        }
-
-	  // Output of table with the paging
-	  $output .= theme_table(
-		    array(
-		      "header" => $header,
-		      "rows" => $rows,
-		      "attributes" => array(""),
-		      "sticky" => true, // Table header will be sticky
-		      "caption" => "",
-		      "colgroups" => array(),
-		      "empty" => t("Table has no data!") // The message to be displayed if table is empty
-		    )
-	  );
-	  return $output;
-}
-
 function admin_form_submit($form, &$form_state) {
 	$form_state['results_table'] = getAllClasses($form_state['values']['start_date'], $form_state['values']['end_date'], $form_state['values']['selected'], $form_state);
   $form_state['rebuild'] = TRUE;

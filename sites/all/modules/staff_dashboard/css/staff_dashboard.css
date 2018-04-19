@@ -1,21 +1,25 @@
-#rooms tr > th {
+#schedule-link {
     
-    width: 30%;
+    display: inline;
     
-}
+    position: relative;
+    
+    font-weight: bold;
 
-#rooms td > .form-checkboxes {
+    padding: 6px; 
     
-    height: 8em;
-
-    overflow-y: scroll;
+    border: 1px solid; 
+    
+    border-radius: 4px; 
+    
+    border-color: maroon; 
     
     background-color: white;
     
 }
 
-#rooms .form-checkboxes > .form-item.form-type-checkbox.checkbox {
+.input-group-addon {
     
-   display: inline !important;
+    display: none;
     
 }

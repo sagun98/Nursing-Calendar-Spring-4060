@@ -30,6 +30,14 @@ label {
     margin-bottom: 20px !important;
 }
 
+.calendar-calendar .month-view .full td.single-day div.monthview, .calendar-calendar .week-view .full td.single-day div.weekview, .calendar-calendar .day-view .full td.single-day div.dayview{
+    background-color: whitesmoke;
+    border-bottom: 1px solid black;
+    border-right: 1px solid black;
+    border-top: 1px solid black;
+
+}
+
 #edit-submit
 {
     margin-top: 17px;
@@ -41,27 +49,27 @@ label {
     margin-top: 6rem;
 }
 
-.container-inline-date {
+/**.container-inline-date {
     margin-bottom: 15px;
     margin-right: 0 !important;
     position: relative !important;
     float: none !important;
     width: 50%;
     display: inline;
-}
+}*/
 
-.form-item {
-    width: 100% !important;
-    display: inline-block !important;
-}
+/**.form-item {
+    width: 100%;
+    display: inline-block;
+}*/
 
 
-.form-control {
+/**.form-control {
     position: relative !important;
     width: 75% !important;
     margin-top: 12px !important;
     border-radius: 10px !important;
-} 
+} */
 
 body {
     list-style-type: none !important;
@@ -96,4 +104,31 @@ a#request.request.request-redirect{
 a#request.request.request-redirect:hover{
     background-color: #800000!important;
     color: white !important;
+}
+
+.calendar-calendar td{
+    color:black;
+    font-weight:bold;
+}
+/*This is the background color for the date box of the current day
+ * values can be altered so its shape can make a triangle or fill the entire box
+ */
+.calendar-calendar .month-view .full td.date-box.today
+{
+    
+    background-image: linear-gradient(135deg, #800029, #800029 22%, transparent 70%, transparent);
+    /*background-image: linear-gradient(225deg, #800029, #800029 30%, transparent 90%, transparent);
+    */
+
+    border: 2px solid black;
+}
+
+.calendar-calendar .month-view .full tr td.single-day.today
+{
+    border: 2px solid black;
+}
+
+.calendar-calendar td.empty
+{
+    color:#800029;
 }

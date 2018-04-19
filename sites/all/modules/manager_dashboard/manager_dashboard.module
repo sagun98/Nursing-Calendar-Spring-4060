@@ -7,7 +7,7 @@ function manager_dashboard_menu() {
     'description' => 'A dashboard for managers',
     'page callback' => 'drupal_get_form', //this is the function that will be called when the page is accessed.  for a form, use drupal_get_form
     'page arguments' => array('manager_dashboard_form'), //put the name of the form here
-    'access arguments' => array('view_collision_dashboard'),
+    'access arguments' => array('view_manager_dashboard'),
   );
   
   // For the default local task, we need very little configuration, as the
@@ -16,7 +16,7 @@ function manager_dashboard_menu() {
     'type' => MENU_DEFAULT_LOCAL_TASK,
     'title' => 'Collisions',
     'description' => 'A dashboard for Manager',
-    'access arguments' => array('view_collision_dashboard'),
+    'access arguments' => array('view_manager_dashboard'),
     'weight' => 1,
     
   );

@@ -1,117 +1,475 @@
 <?php
 
-function schedule_menu() {
-  
-  $items = array();
-  
-  $items['schedule/courses'] = array(
-    'title' => 'Schedule',
-    'description' => 'A dashboard for staff',
-    'page callback' => 'drupal_get_form', //this is the function that will be called when the page is accessed.  for a form, use drupal_get_form
-    'page arguments' => array('schedule_form'), //put the name of the form here
-    'access arguments' => array("access contents"),
-  );
- 
-  return $items;
-  
-}
+function schedule_form($form, $form_state) {
 
-function createScheduleForm($form, &$form_state) {
-  // Get all the course name for the current user
-  $course_name = $form['currentCourse'];
+  $timezone= drupal_get_user_timezone();
+
+  $course = $_SESSION['Selected-Course'];
     
-  $form['course'] = array(
-    '#type' => 'item',
-    '#title' => $form['currentCourse'],
-    '#options' => $course_name,
-  );
+  $crns = get_crns_by_course(array($_SESSION['Selected-Course']));
     
-    $format = 'Y-m-d H:i';
-    $timezone= drupal_get_user_timezone();
-    $form['start_date'] = array(
-        '#type' => 'date_popup',
-        '#title' => t('Start Time'),
-        '#default_value' => date("Y-m-d H:i", round(strtotime("now") / 900) * 900),
-        '#date_format' => "H:i",
-        '#date_label_position' => 'within',
-        '#date_timezone' => $timezone,
-        '#required' => TRUE,
-        '#date_increment' => 15,
-        '#date_year_range' => '-3:+3',
-        '#timepicker' => 'timepicker',
-        '#timepicker_options' => array(
-          'rows' => 6,
-          'minutes' => array(
-            'starts' => 0,
-            'ends' => 56,
-            'interval' => 4,
-          ),
-          'showCloseButton' => TRUE,
-          'closeButtonText' => t('Close'),
-        ),
+  //$crns = array_merge(array($course . '-All' => $course . '-All'), $crns);
+    
+  $res = db_query("SELECT name, tid FROM taxonomy_term_data");
+    
+  while($data = $res->fetchObject()){
+     
+    $rooms[$data->name . '~' . $data->tid] =  $data->name;
       
-    );
+  }
+    
+  $form['courses'] = array(
+		  
+	  '#type' => 'checkboxes',
+			
+		'#title' => t('Select CRN(s)'),
+		  
+		'#options' => $crns,
+			
+		'#validated' => TRUE,
+		
+		'#states' => array(
+		  
+      'invisible' => array(
+      
+        ':input[name="check-all"]' => array('checked' => TRUE),
+      
+      ),
+    
+    ),
+		
+	);
+	
+	$form['check-all'] = array(
+    
+    '#type' => 'checkbox',
+    
+    '#title' =>  t('Select all CRNs for ' . $course),
+    
+    '#attributes' => array('onclick' => 'checkUncheckAll(this);'),
+    
+  );
+		
+	$form['rooms'] = array(
+		  
+	  '#type' => 'select',
+		  
+	  '#title' => t('Select Room'),
+		  
+		'#options' => $rooms,
+			
+		'#validated' => TRUE,
+		  
+	);
+		
+  $form['start_date'] = array(
+  
+    '#type' => 'date_popup',
+  
+    '#title' => t('Start Time'),
+  
+    '#default_value' => date("Y-m-d H:i", round(strtotime("now") / 900) * 900),
+  
+    '#date_format' => 'Y-m-d H:i',
+  
+    '#date_label_position' => 'within',
+    
+    '#date_timezone' => $timezone,
+    
+    '#date_increment' => 15,
+    
+    '#date_year_range' => '-3:+3',
+    
+    // Use 'timepicker' option provided by the Date Popup Timepicker module.
+    // #timepicker property itself is provided by the Date Popup module.
+    '#timepicker' => 'timepicker',
+    
+    // New #timepicker_options property handled by the Date Popup Timepicker
+    // module and lets to customize timepicker options.
+    '#timepicker_options' => array(
+    
+      'rows' => 6,
+    
+      'minutes' => array(
+    
+      'starts' => 0,
+    
+      'ends' => 56,
+    
+      'interval' => 4,
+    
+      ),
+    
+      'showCloseButton' => TRUE,
+    
+      'closeButtonText' => t('Close'),
+    
+    ),
+          
+  );
     
   $form['end_date'] = array(
     '#type' => 'date_popup',
-    '#title' => t('End Time'),
-    '#default_value' => date("Y-m-d H:i", round(strtotime("+1 hour") / 900) * 900),
-    '#date_format' => "H:i",
-    '#date_label_position' => 'within',
-    '#date_timezone' => $timezone,
-    '#required' => TRUE,
-    '#date_increment' => 15,
-    '#date_year_range' => '-3:+3',
-    '#timepicker' => 'timepicker',
-    '#timepicker_options' => array(
-      'rows' => 6,
-      'minutes' => array(
-        'starts' => 0,
-        'ends' => 56,
-        'interval' => 4,
-      ),
-      'showCloseButton' => TRUE,
-      'closeButtonText' => t('Close'),
-      ),
-      
-    );
   
-
-$form['actions']['submit'] = array(
-	  
-    '#type' => 'submit',
-      
-    '#value' => t('Schedule Class'),
+    '#title' => t('End Time'),
+  
+    '#default_value' => date("Y-m-d H:i", round(strtotime("+1 hour") / 900) * 900),
+  
+    '#date_format' => "H:i",
+  
+    '#date_label_position' => 'within',
+  
+    '#date_timezone' => $timezone,
+  
+    '#required' => TRUE,
+  
+    '#date_increment' => 15,
+  
+    '#date_year_range' => '-3:+3',
+  
+    '#timepicker' => 'timepicker',
+  
+    '#timepicker_options' => array(
+  
+      'rows' => 6,
+  
+      'minutes' => array(
+  
+        'starts' => 0,
+  
+        'ends' => 56,
+  
+        'interval' => 4,
+  
+      ),
+  
+      'showCloseButton' => TRUE,
+  
+      'closeButtonText' => t('Close'),
+  
+    ),
       
   );
-	  
-	return $form;
-}
-
-function schedule_form($form, &$form_state) {
   
-	$form = createScheduleForm($form, $form_state);
+  $form['repeat'] = array(
+    
+    '#type' => 'checkbox',
+    
+    '#title' => t('Repeat Event?'),
+    
+  );
+  
+  $form['repeat-until'] = array(
+  
+    '#type' => 'date_popup',
+    
+    '#states' => array(
 
+      // Hide the settings when the cancel notify checkbox is disabled.
+
+      'visible' => array(
+
+       ':input[name="repeat"]' => array(
+         
+         'checked' => TRUE
+         
+         ),
+       
+      ),
+      
+    ),
+  
+    '#title' => t('Repeat Until'),
+  
+    '#default_value' => date("Y-m-d H:i", round(strtotime("now") / 900) * 900),
+  
+    '#date_format' => 'Y-m-d',
+  
+    '#date_label_position' => 'within',
+    
+    '#date_timezone' => $timezone,
+    
+    '#date_increment' => 15,
+    
+    '#date_year_range' => '-3:+3',
+    
+    // Use 'timepicker' option provided by the Date Popup Timepicker module.
+    // #timepicker property itself is provided by the Date Popup module.
+    '#timepicker' => 'timepicker',
+    
+    // New #timepicker_options property handled by the Date Popup Timepicker
+    // module and lets to customize timepicker options.
+    '#timepicker_options' => array(
+    
+      'rows' => 6,
+    
+      'minutes' => array(
+    
+      'starts' => 0,
+    
+      'ends' => 56,
+    
+      'interval' => 4,
+    
+      ),
+    
+      'showCloseButton' => TRUE,
+    
+      'closeButtonText' => t('Close'),
+    
+    ),
+          
+  );
+  
+  $form['actions']['submit'] = array(
+  
+    '#type' => 'submit',
+  
+    '#value' => t('Check Room'),
+  
+  );
+      
+  if (!empty($form_state['results_table'])) {
+  
+      $form['results_table'] = array('#markup' => $form_state['results_table']);
+    
+  }
+  
   return $form;
-
+  
 }
 
-function schedule_form_reset($form, &$form_state) {
+
+function getAllClasses($start_time, $end_time, $course_name, &$form_state) {
+
+    $output = "";
+    
+    $end_time = substr($start_time, 0, (strrpos($start_time, " "))) . " " . $end_time;
+    
+   /** $res = db_query("SELECT name, tid FROM taxonomy_term_data");*/
+    
+	  $header = array('Book Room');
+	  
+	  $rows = array();
+	  
+	  $parts = explode("-", $course_name);
+	  
+	  $roomParts = explode("~", $form_state['values']['rooms']);
+	  
+	
+	  $status = getStatus($roomParts[1], $start_time, $end_time);
+	       
+	       if($status == "Available") {
+	         
+	         $book = "Book Room";
+	         
+	       }
+	       
+	       elseif ($status == "Locked"){
+	         
+	         $book = "Booking Closed(Manager will handle the request)"; 
+	         
+	       }
+	       
+	       else {
+	         
+	         $book = "Request";
+	         
+	       }  
+	  
+	  
+	  $rows[] = array(
+  	       
+		     l(
+		       
+              t($book), 
+              
+              '/node/add/submit-room-request', 
+              
+              array(
+                
+                'attributes' => array(
+                  
+                  'class' => array(
+                    
+                    'request', 
+                    
+                    'request-class',
+                    
+                  ), 
+                  
+                  'id' =>'request',
+                  
+                ),
+                
+                'query' => array(
+                  
+                  'room_name' => $roomParts[0],
+                  
+                  'start_date' => $start_time, 
+                  
+                  'end_date' => $end_time,
+                  
+                  'status' => $status,
+                  
+                  'course_name' => $parts[0],
+                  
+                  'course_id' => $parts[1],
+                  
+                ), 
+                
+                'html' => TRUE,
+                
+                )
+                
+              )
+              
+            );
+	    /**    
+	  // Looping for filling the table rows
+	  while($data = $res->fetchObject()){
+	    
+	       $status = getStatus($data->tid, $start_time, $end_time);
+	       
+	       if($status == "Available") {
+	         
+	         $book = "Book Room";
+	         
+	       }
+	       
+	       elseif ($status == "Locked"){
+	         
+	         $book = "Booking Closed(Manager Will Handle the request)"; 
+	         
+	       }
+	       
+	       else {
+	         
+	         $book = "Request";
+	         
+	       }  
+	       
+	       $parts =explode("-", $course_name);
+	       
+  	     $rows[] = array(
+  	       
+		     $data->name,
+		     
+		     $status,
+		     
+		     l(
+		       
+              t($book), 
+              
+              '/node/add/submit-room-request', 
+              
+              array(
+                
+                'attributes' => array(
+                  
+                  'class' => array(
+                    
+                    'request', 
+                    
+                    'request-class',
+                    
+                  ), 
+                  
+                  'id' =>'request',
+                  
+                ),
+                
+                'query' => array(
+                  
+                  'room_name' => $data->name,
+                  
+                  'start_date' => $start_time, 
+                  
+                  'end_date' => $end_time,
+                  
+                  'status' => $status,
+                  
+                  'course_name' => $parts[0],
+                  
+                  'course_id' => $parts[1],
+                  
+                ), 
+                
+                'html' => TRUE,
+                
+                )
+                
+              )
+              
+            );
+            
+        }
+
+	  // Output of table with the paging
+	  */
+	  $output .= theme_table(
+	    
+		    array(
+		      
+		      "header" => $header,
+		      
+		      "rows" => $rows,
+		      
+		      "attributes" => array(""),
+		      
+		      "sticky" => true, // Table header will be sticky
+		      
+		      "caption" => "",
+		      
+		      "colgroups" => array(),
+		      
+		      "empty" => t("Table has no data!") // The message to be displayed if table is empty
+		      
+		    )
+		    
+	  );
+	  
+	  return $output;
+	  
+}
+
+function repeat_event_until($course_name, $course_id, $room_name, $room_id, $start_time, $end_time, $until_date) {
   
-  $form_state['rebuild'] = FALSE;
+  $until_date = date('Y-m-d H:i', strtotime($until_date . ' ' . $end_time));
+  
+  //dpm(date('Y-m-d H:i', strtotime(explode(' ', $start_time)[0] . ' ' . $end_time)));
+
+  while($start_time <= $until_date) {
+    
+    //create_event($form, $form_state, $room_name, $room_id, $course_name, $course_id, $start_date, $end_date);
+  
+    dpm("Created $room_name $course_name $course_id $start_time $end_time $until_date");
+    
+    $start_time = date('Y-m-d H:i', strtotime("+7 day", strtotime($start_time)));
+
+  }
   
 }
 
 function schedule_form_submit($form, &$form_state) {
+  
+	$form_state['results_table'] = getAllClasses($form_state['values']['start_date'], $form_state['values']['end_date'], $form_state['values']['courses'], $form_state);
 	
-	 // Generate the new link using the submitted text value.
-  $link = _staff_dashboard_make_link($form_state['values']['new_link_text']);
-
-  // Tell the browser to close the modal.
-  $form_state['ajax_commands'][] = ctools_modal_command_dismiss();
-
-  // Tell the browser to replace the old link with the new one.
-  $form_state['ajax_commands'][] = ajax_command_replace('#magical-modal-link', $link);
+	$roomParts = explode("~", $form_state['values']['rooms']);
+	
+  foreach($form_state['values']['courses'] as $course) {
+    
+    if($course) {
+  	  
+    	$course_parts = explode("-", $course);
+    	
+      repeat_event_until($course_parts[0], $course_parts[1], $roomParts[0], $roomParts[1], $form_state['values']['start_date'], $form_state['values']['end_date'], $form_state['values']['repeat-until']);
+    	
+    }
+    
+  }
+	
+  $form_state['rebuild'] = TRUE;
   
 }
 

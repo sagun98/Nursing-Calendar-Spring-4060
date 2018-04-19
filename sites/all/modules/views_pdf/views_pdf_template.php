@@ -19,7 +19,8 @@ if (file_exists(views_pdf_get_library('fpdi') . '/fpdi_bridge.php')) {
   require_once views_pdf_get_library('fpdi') . '/fpdi_bridge.php';
 }
 else {
-  require_once views_pdf_get_library('fpdi') . '/fpdi2tcpdf_bridge.php';
+ // require_once views_pdf_get_library('fpdi') . '/fpdi2tcpdf_bridge.php';
+    require_once views_pdf_get_library('fpdi') . '/src/TcpdfFpdi.php';
 }
 
 require_once views_pdf_get_library('fpdi') . '/fpdi.php';

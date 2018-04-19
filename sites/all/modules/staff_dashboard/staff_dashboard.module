@@ -15,7 +15,7 @@ function staff_dashboard_menu() {
 
   $items['staff/dashboard/%ctools_js'] = array(
     'page callback' => 'staff_dashboard_callback',
-    'page arguments' => array(1),
+    'page arguments' => array(1, 2),
     'access callback' => TRUE,
     'type' => MENU_CALLBACK,
   );
@@ -44,17 +44,9 @@ function staff_dashboard_menu() {
   
 }
 
-function _staff_dashboard_make_link($link_text = '') {
+function _staff_dashboard_make_link() {
   
-  // Set a default value if no text in supplied.
-  
-  if (empty($link_text)) {
-    
-    $link_text = 'Schedule Courses';
-    
-  }
-
-  return '<div id="schedule-link" >' .l($link_text, 'staff/dashboard/nojs', array('attributes' => array('class' => 'ctools-use-modal'))) . '</div>';
+  return '<div id="schedule-link">' . l('Schedule Course', 'staff/dashboard/nojs', array('attributes' => array('class' => 'ctools-use-modal'))) . '</div>';
   
 }
 
@@ -81,12 +73,19 @@ function get_crns_by_course($courses) {
 }
 
 function check_role($userRoles, $role) {
+  
   $isRole = false;
+  
     foreach($userRoles as $user) {
+      
       if($user == $role) {
+        
         $isRole = true;
+        
       }
+      
     }
+    
     return $isRole;
 }
 
@@ -124,142 +123,117 @@ function get_courses_current_user(){
 	  return $courses;
 }
 
-function getNextCourse($form, &$form_state) {
-  
-  dpm($form_state);
-  
-}
-
 function getStatus($id, $start_time, $end_time) {
+  
     $status = true;
-    $lock = db_query("SELECT * FROM field_revision_field_lock_date_time WHERE entity_id=(SELECT MAX(entity_id) FROM field_revision_field_lock_date_time)");
-    $lock_data = $lock->fetchObject();
-    $lock_date = $lock_data->field_lock_date_time_value;
-    $current_date = date('Y-m-d H:i:s', time());
-    $lock_date = date('Y-m-d H:i:s',strtotime('-5 hour',strtotime($lock_date)));
-    //dpm($current_date);
-    //dpm($lock_date);
     
-    if (strtotime($lock_date) > strtotime($current_date)){
-    $res = db_query("SELECT entity_id,
-            field_time_value, field_time_value2 
-            FROM field_data_field_time AS time NATURAL JOIN field_data_field_roomname AS room, node as n
-            WHERE n.status =1 and room.field_roomname_tid = " . $id);
-    while($data = $res->fetchObject()){
-	    $start = $data -> field_time_value;
-	    $end = $data -> field_time_value2;
-	    if(($start_time >= $start && $start_time <= $end) || 
-	        ($end_time <= $end && $end_time >= $start)) {
-	            $status = false;
-	        }
-	  }
-    if($status) {
-        return 'Available';
+    $lock = db_query("SELECT * FROM field_revision_field_lock_date_time WHERE entity_id=(SELECT MAX(entity_id) FROM field_revision_field_lock_date_time)");
+    
+    $lock_data = $lock->fetchObject();
+    
+    $lock_date = $lock_data->field_lock_date_time_value;
+    
+    $current_date = date('Y-m-d H:i:s', time());
+    
+    $lock_date = date('Y-m-d H:i:s',strtotime('-5 hour',strtotime($lock_date)));
+    
+    if (strtotime($lock_date) > strtotime($current_date)) {
+      
+      $res = db_query("SELECT entity_id,
+              field_time_value, field_time_value2 
+              FROM field_data_field_time AS time NATURAL JOIN field_data_field_roomname AS room, node as n
+              WHERE n.status = 1 
+              AND room.field_roomname_tid = " . $id);
+              
+      while($data = $res->fetchObject()) {
+        
+  	    $start = $data -> field_time_value;
+  	    
+  	    $end = $data -> field_time_value2;
+  	    
+  	    if(($start_time >= $start && $start_time <= $end) || 
+  	        ($end_time <= $end && $end_time >= $start)) {
+  	          
+  	            $status = false;
+  	            
+  	        }
+  	        
+  	  }
+  	  
+      if($status) {
+        
+          return 'Available';
+          
+      }
+      
+      else {   
+        
+          return 'Booked';
+          
+      }
+      
     }
-    else {   
-        return 'Booked';
-    }
-    }
+    
     else {
+      
     return "Locked";
-    }
+    
+  }
+    
 }
 
 function createStaffDashboardTable($form, &$form_state) {
-  
-	$res = db_query("SELECT name, tid FROM taxonomy_term_data");
     
 	$courses = get_courses_current_user();
 	
-	$courses = get_crns_by_course($courses);
-	
-	if($courses > 0) {
-			
-			$multiple = TRUE;
-			
-		}
-                     
-	$header = array('Room Name', '', 'Select Course(s) to Schedule');
-	
-	$rows = array();
-	
-	$count = 0;
-	
-	$form['table']['rooms'] = array(
-    '#prefix' => '<div id="rooms">',
-    '#suffix' => '</div>',
-    '#tree' => TRUE,
-    '#theme' => 'table',
-    '#header' => $header,
-    '#rows' =>$rows,
-  );
-  
-	// Looping for filling the table rows
-	while($data = $res->fetchObject()){
-
-		if($courses > 0) {
-			
-			$multiple = TRUE;
-			
-		}
+	$form['course'] = array (
 	  
-		$roomName = array(
-		  
-		  '#type' => 'item',
-		  
-		  '#title' => t($data -> name),
-		  
-		);
-		
-		$button = array(
-		  
-		  '#type' => 'item',
-		  
-		  '#markup' => '<button type="button" class="btn btn-primary" onclick="collapse(' . $count . ')">View Courses</button>',
-		  
-		);
-		
-		$courseList = array(
-		  
-			'#type' => 'select',
-		  
-			'#options' => $courses,
+	    '#type' => 'select',
+	    
+	    '#options' => array_merge(array('Select a Course' => 'Select a Course'), $courses),
+	    
+	   // '#attributes' => array('onchange' => 'hideUnhideButton()'),
+	    
+	    '#ajax' => array(
+	      
+	        'callback' => 'staff_dashboard_select_callback',
+	      
+	      ),
+	  
+	  );
+	
+	$form['container'] = array(
+	  
+	  '#type' => 'container',
+	  
+		'#states' => array(
 
-      '#size' => $multiple ? count($courses) / 2 : 0,
-		  
-		);
-              
-		$form['table']['rooms'][] = array(
-		  
-		  'Room Name' => &$roomName,
-		  
-		  '' => &$button,
-		  
-		  'Select Course' => &$courseList,
-		  
-		);
-		
-		$form['table']['rooms']['#rows'][] = array(
-		  
-		  array('data' => &$roomName),
-		  
-		  array('data' => &$button),
-		  
-		  array('data' => &$courseList),
-		  
-		);
-    
-		unset($roomName);
-		
-		unset($button);
-		
-		unset($courseList);
-		
-		$count++;
-		
-	}
+      // Hide the settings when the cancel notify checkbox is disabled.
+
+      'invisible' => array(
+
+        ':input[name="course"]' => array(
+         
+          'value' => t('Select a Course'),
+         
+        ),
+       
+      ),
+      
+    ),
+	  
+	 );
+	
+	$form['container']['submit'] = array (
+	  
+	  '#type' => 'item',
+
+		'#markup' => _staff_dashboard_make_link(),
+	  
+	);
 	  
 	return $form;
+	
 }
 
 function staff_dashboard_callback($ajax) {
@@ -308,6 +282,12 @@ function staff_dashboard_callback($ajax) {
   
 }
 
+function staff_dashboard_select_callback($form, $form_state) {
+  
+  $_SESSION['Selected-Course'] = $form_state['values']['course'];
+  
+}
+
 function staff_dashboard_form($form, &$form_state) {
   
   ctools_include('modal');
@@ -315,59 +295,13 @@ function staff_dashboard_form($form, &$form_state) {
   ctools_modal_add_js();
   
 	$form = createStaffDashboardTable($form, $form_state);
-	
-  $form['actions']['submit'] = array(
-	  
-    '#type' => 'submit',
-      
-    '#value' => t('Schedule Class'),
-    
-    '#submit' => _staff_dashboard_make_link('Schedule Courses'),
-      
-  );
-    
-  $form['options']['reset'] = array(
-    
-    '#type' => 'submit',
-  
-    '#value' => t('Reset Selection'),
-  
-    '#submit' => array('staff_dashboard_form_reset'),
-  
-  );
-  
-  $form['Link'] = array(
-    
-    '#type' => 'item',
-    
-    '#markup' => _staff_dashboard_make_link('Schedule Courses'),
-    
-    );
-	
+
 	return $form;
 
 }
 
-function staff_dashboard_form_reset($form, &$form_state) {
-  
-  $form_state['rebuild'] = FALSE;
-  
-}
-
 function staff_dashboard_form_submit($form, &$form_state) {
-
-  $new_form_state = array();
   
-  // list path arguments that usually go into form_id_2 constructor from path2
-  $new_form_state['build_info']['args'] = array();
-  
-  $new_form_state['method'] = 'post';
-  
-  // list values you want to pass.
- $new_form_state['currentCourse'] = getNextCourse($form, $form_state);
-  
-  drupal_add_js('document.getElementById("schedule-link").click()', 'inline');
-	
 }
 
 ?>
