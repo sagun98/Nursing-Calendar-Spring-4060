@@ -1,0 +1,224 @@
+<?php
+
+function _manager_redirect_handler_link($link_name, $href, $event_type, $room_name, $room_id, $start_date, $end_date, $course_name, $crn, $user_name, $user_id, $node_id, $collision_id = -1) {
+  
+  return "<div class='$event_type-handler'>" .  
+  
+    l(
+      
+      t($link_name), 
+      
+      $href, 
+      
+      array(
+        
+        'attributes' => array(
+        
+          'class' => array(
+          
+              'request', 
+              
+              'request-redirect',
+              
+            ), 
+            
+          ),
+          
+          'query' => array(
+            
+            'handler_type' => $link_name,
+            
+            'event_type' => $event_type,
+          
+            'room_name' => $room_name,
+            
+            'room_id' => $room_id,
+            
+            'start_date' => $start_date, 
+            
+            'end_date' => $end_date,
+            
+            'course_name' => $course_name,
+            
+            'course_id' => $crn,
+            
+            'uid' => $user_id,
+            
+            'node_id' => $node_id,
+            
+            'collision_id' => $collision_id,
+            
+        ), 
+
+      )
+      
+    ) . '</div>';
+  
+}
+
+function createRequestsTable($form, &$form_state) {
+  
+    $result = db_query("SELECT * FROM REQUESTS");
+                     
+	$header = array('Accept', 'Reject', 'Edit', 'Room Name', 'Start Date', 'End Date', 'Course Name', 'CRN', 'Status', 'User');
+	
+	$rows = array();
+	
+	$form['requests'] = array(
+	  
+    '#prefix' => '<div id="requests">',
+    
+    '#suffix' => '</div>',
+    
+    '#tree' => TRUE,
+    
+    '#theme' => 'table',
+    
+    '#header' => $header,
+    
+    '#rows' => $rows,
+    
+  );
+  
+	// Looping for filling the table rows
+    while($data = $result->fetchObject()) {
+
+      $accept = array(
+        
+        '#type' => 'item',
+        
+        '#markup' => _manager_redirect_handler_link('Accept', 'manager/redirect', 'request', $data->room_name, $data->room_id, $data->start_time, $data->end_time, $data->course_name, $data->CRN, $data->user_name, $data->user_id, $data-> nid),
+        
+      );
+      
+      $reject = array(
+        
+        '#type' => 'item',
+        
+        '#markup' => _manager_redirect_handler_link('Reject', 'manager/redirect', 'request',$data->room_name, $data->room_id, $data->start_time, $data->end_time, $data->course_name, $data->CRN, $data->user_name, $data->user_id, $data-> nid),
+        
+      );
+      
+      $edit = array(
+        
+        '#type' => 'item',
+        
+        '#markup' => _manager_redirect_handler_link('Edit', 'edit/event', 'request', $data->room_name, $data->room_id, $data->start_time, $data->end_time, $data->course_name, $data->CRN, $data->user_name, $data->user_id, $data-> nid),
+           
+      );
+	  
+        $roomName = array(
+          
+          '#type' => 'item',
+          
+          '#title' => t($data -> room_name),
+          
+        );
+        
+        $startTime = array(
+          
+          '#type' => 'item',
+          
+          '#title' => t($data -> start_time),
+          
+        );
+        
+        $endTime = array(
+          
+          '#type' => 'item',
+          
+          '#title' => t($data -> end_time),
+          
+        );
+        
+        $courseName = array(
+          
+          '#type' => 'item',
+          
+          '#title' => t($data -> course_name),
+          
+        );
+        
+        $crn = array(
+          
+          '#type' => 'item',
+          
+          '#title' => t($data -> CRN),
+          
+        );
+        
+        $status = array(
+          
+          '#type' => 'item',
+          
+          '#title' => t('Unpublished'),
+          
+        );
+        
+        $userName = array(
+          
+          '#type' => 'item',
+          
+          '#title' => t($data -> user_name),
+          
+        );
+    
+        $form['requests']['#rows'][] = array(
+            
+            array('data' => &$accept),
+        
+            array('data' => &$reject),
+        
+            array('data' => &$edit),
+
+            array('data' => &$roomName),
+          
+            array('data' => &$startTime),
+          
+            array('data' => &$endTime),
+            
+            array('data' => &$courseName),
+            
+            array('data' => &$crn),
+          
+            array('data' => &$status),
+          
+            array('data' => &$userName),
+
+        );
+        
+        unset($accept);
+        
+        unset($reject);
+        
+        unset($edit);
+        
+        unset($roomName);
+          
+        unset($startTime);
+          
+        unset($endTime);
+          
+        unset($courseName);
+        
+        unset($crn);
+          
+        unset($status);
+          
+        unset($userName);
+
+	}
+	  
+	return $form;
+	  
+}
+
+function requests_form($form, &$form_state) {
+  
+  $form = createRequestsTable($form, $form_state);
+  
+  return $form;
+  
+}
+
+?>

@@ -1,0 +1,222 @@
+<?php
+
+function edit_event_menu() {
+  
+  $items = array();
+  
+  $items['edit/event'] = array( //this creates a URL that will call this form at "examples/form-example"
+  
+    'title' => 'Edit', //page title
+    
+    'description' => 'A redirection page for managing collisions',
+    
+    'page callback' => 'drupal_get_form', //this is the function that will be called when the page is accessed.  for a form, use drupal_get_form
+    
+    'page arguments' => array('edit_event_form'), //put the name of the form here
+    
+    'access arguments' => array('access content')
+    
+  );
+  
+  return $items;
+  
+}
+
+function edit_event_form($form, $form_state) {
+    
+    if(isset($_GET['course_name'])) {
+      
+      $course = $_GET['course_name'] . '-' . $_GET['course_id'];
+      
+      $start_date = $_GET['start_date'];
+      
+      $end_date = $_GET['end_date'];
+    
+      $timezone= drupal_get_user_timezone();
+      
+      $res = db_query("SELECT name, tid FROM taxonomy_term_data");
+      
+      while($data = $res->fetchObject()){
+       
+          $rooms[$data->name . '~' . $data->tid] =  $data->name;
+        
+      }
+      
+    $form['editing'] = array(
+      
+      '#type' => 'item',
+      
+      '#title' => "Editing $course on $start_date to $end_date",
+      
+    );
+  		
+  	$form['rooms'] = array(
+  		  
+  	    '#type' => 'select',
+  		  
+  	    '#title' => t('Select Room'),
+  		  
+  		'#options' => $rooms,
+  		
+  		'#validated' => TRUE,
+  		  
+  	);
+  		
+      $form['start_date'] = array(
+    
+          '#type' => 'date_popup',
+    
+          '#title' => t('Start Time'),
+    
+          '#default_value' => date("Y-m-d H:i", round(strtotime("now") / 900) * 900),
+    
+          '#date_format' => 'Y-m-d H:i',
+    
+          '#date_label_position' => 'within',
+      
+          '#date_timezone' => $timezone,
+      
+          '#date_increment' => 15,
+      
+          '#date_year_range' => '-3:+3',
+      
+          // Use 'timepicker' option provided by the Date Popup Timepicker module.
+          // #timepicker property itself is provided by the Date Popup module.
+          '#timepicker' => 'timepicker',
+      
+          // New #timepicker_options property handled by the Date Popup Timepicker
+          // module and lets to customize timepicker options.
+          '#timepicker_options' => array(
+      
+              'rows' => 4,
+      
+              'minutes' => array(
+      
+              'starts' => 0,
+      
+              'ends' => 55,
+      
+              'interval' => 5,
+      
+          ),
+      
+          'showCloseButton' => TRUE,
+      
+          'closeButtonText' => t('Close'),
+      
+      ),
+            
+    );
+      
+    $form['end_date'] = array(
+      
+      '#type' => 'date_popup',
+    
+      '#title' => t('End Time'),
+    
+      '#default_value' => date("Y-m-d H:i", round(strtotime("+1 hour") / 900) * 900),
+    
+      '#date_format' => "H:i",
+    
+      '#date_label_position' => 'within',
+    
+      '#date_timezone' => $timezone,
+    
+      '#required' => TRUE,
+    
+      '#date_increment' => 15,
+    
+      '#date_year_range' => '-3:+3',
+    
+      '#timepicker' => 'timepicker',
+    
+      '#timepicker_options' => array(
+    
+        'rows' => 4,
+    
+        'minutes' => array(
+    
+          'starts' => 0,
+    
+          'ends' => 55,
+    
+          'interval' => 5,
+    
+        ),
+    
+        'showCloseButton' => TRUE,
+    
+        'closeButtonText' => t('Close'),
+    
+      ),
+        
+    );
+    
+    $form['edit-room'] = array(
+    
+      '#type' => 'submit',
+    
+      '#value' => t('Confirm Edit'),
+    
+    );
+    
+    $form['close'] = array(
+  
+      '#type' => 'submit',
+    
+      '#value' => t('Close'),
+      
+      '#submit' => array('edit_event_close'),
+      
+    );
+        
+    if (!empty($form_state['results_table'])) {
+    
+        $form['results_table'] = array('#markup' => $form_state['results_table']);
+      
+    }
+  
+  }
+  
+  return $form;
+  
+}
+
+function edit_event_form_submit($form, &$form_state) {
+	
+  $roomParts = explode("~", $form_state['values']['rooms']);
+  
+  $node_id = $_GET['node_id'];
+  
+  $start_date = $form_state['values']['start_date'];
+  
+  $end_date = date('Y-m-d H:i', strtotime(explode(' ', $start_date)[0] . ' ' . $form_state['values']['end_date']));
+  
+  node_delete($node_id);
+  
+  if($_GET['event_type'] == 'collision') {
+    	  
+    delete_collision($node_id, $_GET['collision_id']);
+  
+  }
+  
+  else if($_GET['event_type'] == 'request')  {
+    
+    delete_request($node_id);
+    
+  }
+  
+  create_event($roomParts[0], $roomParts[1], $_GET['course_name'], $_GET['course_id'], $start_date, $end_date);
+  
+  drupal_goto("manager/dashboard");
+ 
+}
+
+function delete_request($node_id) {
+  
+  $del = db_query("DELETE FROM REQUESTS
+                          WHERE nid = $node_id");
+  
+}
+
+?>

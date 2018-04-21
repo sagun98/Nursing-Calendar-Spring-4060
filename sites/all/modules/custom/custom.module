@@ -1,6 +1,6 @@
 <?php
 
-//Function that returns latest nodeid 
+/**Function that returns latest nodeid 
 function get_latest_nodeid(){
     $r = db_select('node','n')
     ->fields('n')
@@ -33,229 +33,74 @@ function update_room_type(){
             SET field_room_type_for_filter_value = '$room_name'
             WHERE field_data_field_room_type_for_filter.entity_id = '$latest_node_id'");
 }
+*/
 
-function final_update(){
-$room_name=$GLOBALS['room_name'];
-$latest_node_id= get_latest_nodeid()+"";
-    $res = db_query("UPDATE field_data_field_room_type_for_filter 
-    SET field_room_type_for_filter_value ='gede'
-            WHERE field_data_field_room_type_for_filter.entity_id = $latest_node_id");
-}
-
-
-function tid($room_name){
-    $result = db_query("SELECT name,tid FROM taxonomy_term_data where name='$room_name'"); 
-    $data = $result->fetchObject();
-    return $data->tid;  
-}
-
-function get_one_status($start_time, $end_time) {
-    $status = true;
-    $GLOBALS['room_name']=$_GET["room_name"];
-    $tid= tid($_GET["room_name"]);
-    $lock = db_query("SELECT * FROM field_revision_field_lock_date_time WHERE  entity_id=(SELECT MAX(entity_id) FROM field_revision_field_lock_date_time)");
-    $lock_data = $lock->fetchObject();
-    $lock_date = $lock_data->field_lock_date_time_value;
-    $current_date = date('Y-m-d H:i:s', time());
-    $lock_date = date('Y-m-d H:i:s',strtotime('-5 hour',strtotime($lock_date)));
-    
-    if (strtotime($lock_date) > strtotime($current_date)){
-    $res = db_query("SELECT entity_id,
-            field_time_value, field_time_value2 
-            FROM field_data_field_time AS time NATURAL JOIN field_data_field_roomname AS room
-            WHERE room.field_roomname_tid = " . $tid);
-    while($data = $res->fetchObject()){
-	    $start = $data -> field_time_value;
-	    $end = $data -> field_time_value2;
-	    if(($start_time >= $start && $start_time <= $end) || 
-	        ($end_time <= $end && $end_time >= $start)) {
-	            $status = false;
-	        }
-	  }
-    if($status) {
-        return 'Available';
-    }
-    else {   
-        return 'Booked';
-    }
-    }
-    else {
-        return 'Locked';
-    }
-    
-}
-
-//# insert_other_collided_class($form, $form_state, $room_name, $room_id, $course_name, $course_id, $start_date, $end_date) {
-function insert_other_collided_class(){
+function insert_other_collided_class($room_name, $room_id, $course_name, $course_id, $start_date, $end_date) {
     
     global $user;
     
-    //#$current_status = getStatus($room_id, $start_date, $end_date);
-    $current_status=get_one_status($_GET["start_date"], $_GET["end_date"]);
-    
-    $room_name=$_GET['room_name'];
-    
-    $start_time=$_GET['start_date'];
-    
-    $end_time=$_GET['end_date'];
-    
-    $uid=(int)$user->uid;
+    $current_status = getStatus($room_id, $start_date, $end_date);
 
-    $stmt = db_query("SELECT tid FROM taxonomy_term_data WHERE name='$room_name'"); 
-    
-    $data=$stmt->fetchObject();
-    
-    $tid= $data->tid;
-    
-    //#$GLOBALS['tid'] = $room_id;
-    $GLOBALS['tid'] =$tid ;
-    
-    //dpm ($tid);
-    
-    if ($current_status=="Booked"){
-
-    $res = db_query("SELECT n.uid,n.nid
-                    FROM node as n, field_data_field_roomname as rn, field_data_field_time as t
-                    WHERE n.status = 1
-                    AND n.type = 'submit_room_request'
-                    AND n.nid = rn.entity_id
-                    AND rn.field_roomname_tid = $tid
-                    AND n.nid = t.entity_id
-                    AND '$start_time' >= t.field_time_value
-	                AND '$start_time' <= t.field_time_value2
-  	                OR n.status = 1
-                    AND n.type = 'submit_room_request'
-                    AND n.nid = rn.entity_id
-                    AND rn.field_roomname_tid = 1
-                    AND n.nid = t.entity_id
-	                AND '$end_time' <= t.field_time_value2
-	                AND '$end_time' >= t.field_time_value");
-
-    $fetch_data = $res->fetchObject();
-    
-    //dpm($fetch_data);
-    
-    $main_uid = $fetch_data->uid;
-    
-    $main_nid = $fetch_data->nid;
-    
-    $GLOBALS['collision_id'] = $main_nid; 
-    
-    $r = db_query("SELECT name from users where uid = $main_uid");
-    
-    $d=$r->fetchObject();
-    
-    $main_username = $d->name;
-
-    //dpm (node_load($main_nid));
-     //sql to find the course name
-     $cn = db_query("SELECT field_course_names_value FROM field_data_field_course_names where entity_id=$main_nid");
-     
-     $gg = $cn->fetchObject();
-     
-     $main_course_name = $gg->field_course_names_value;
-     
-     //sql to fine course id
-     $cn = db_query("SELECT field_course_id_value FROM field_data_field_course_id where entity_id=$main_nid");
-     
-     $gg = $cn->fetchObject();
-     
-     $main_course_id = $gg->field_course_id_value;
-     
-     
-    $enter_flag = false;
-    
-    $stmt1 = db_query("SELECT collision_id FROM collision where flag = 1");
-    
-    while($st = $stmt1->fetchObject()){
-        
-        if ($main_nid == $st->collision_id){
-            
-            $enter_flag = true;
-            
-        }
-        
-    }
-    
-    if (!$enter_flag){
-        
-        $sql="INSERT INTO collision (CRN, user_id, user_name, course_name, room_name, start_time, end_time,nid, collision_id, flag) VALUES ($main_course_id, $main_uid, '$main_username','$main_course_name' ,'$room_name' ,'$start_time', '$end_time', '$main_nid' ,'$main_nid', 1)";
-        
-        $result = db_query($sql);
-        
-    }
-    
-}
-
-
-// SELECT n.uid,n.nid
-// FROM node as n, field_data_field_roomname as rn,
-// field_data_field_time as t
-// WHERE status = 1
-// AND n.type = 'submit_room_request'
-// AND n.nid = rn.entity_id
-// AND rn.field_roomname_tid = 1
-// AND n.nid = t.entity_id
-// AND '2018-04-13 04:15:00' = t.field_time_value
-// OR '2018-04-13 05:15:00' = t.field_time_value2
-// (StartDate1 <= EndDate2) and (StartDate2 <= EndDate1)
-
-    
-// "SELECT n.uid FROM node as n, 
-// field_data_field_roomname as rn,
-// field_data_field_time as t 
-// where status =1 and 
-// n.type = 'submit_room_request' and 
-// n.nid= rn.entity_id and 
-// rn.field_roomname_tid=4 and 
-// n.nid=t.entity_id and 
-// '2018-04-13 01:00:00' = t.field_time_value  and '2018-04-13 02:00:00' = t.field_time_value2" 
-
-
-
-    }
-
-//# function insert_collisions($form, $form_state, $room_name, $course_name, $course_id, $start_date, $end_date) {
-function insert_collisions() {
-    
-    global $user;
-    
-    //#$current_status = get_one_status($start_date, $end_date);
-    $current_status = get_one_status($_GET["start_date"], $_GET["end_date"]);
-    
-    $room_name = $_GET['room_name'];
-    
-    $course_name =  $_GET["course_name"];
-    
-    $start_time = $_GET['start_date'];
-    
-    $end_time = $_GET['end_date'];
-    
     $uid = (int)$user->uid;
+
+    if($current_status == "Booked") {
+
+        $res = db_query("SELECT node.uid, node.nid, user.name, courseName.field_course_names_value, courseID.field_course_id_value
+                         FROM node AS node 
+                         JOIN field_data_field_roomname AS room ON node.nid = room.entity_id
+                         JOIN field_data_field_time AS time ON node.nid = time.entity_id
+						 JOIN users AS user ON node.uid = user.uid
+						 JOIN field_data_field_course_names AS courseName ON node.nid = courseName.entity_id
+						 JOIN field_data_field_course_id AS courseID ON node.nid = courseID.entity_id
+                         WHERE node.status = 1
+                         AND node.type = 'submit_room_request'
+                         AND room.field_roomname_tid = $room_id
+                         AND (('$start_date' >= time.field_time_value
+    	                 AND '$start_date' <= time.field_time_value2)
+      	                 OR ('$end_date' <= time.field_time_value2
+    	                 AND '$end_date' >= time.field_time_value))");
     
-    //$GLOBALS['collision_id'] = $room_name; 
+        if($fetch_data = $res->fetchObject()) {
     
-    $user_name = $user->name;
-    
-    $crn = $_GET["course_id"];
-    
-    if ($current_status == "Booked"){
-        
-        $collision_id = $GLOBALS['collision_id'];
-        
-        //#$sql="INSERT INTO collision (CRN, user_id, user_name, course_name, room_name, start_time, end_time, collision_id, nid, flag) VALUES ($course_id, $uid, '$user_name','$course_name' ,'$room_name' ,'$start_date', '$end_date', '$collision_id', 66666, 0)";
-        
-        $sql="INSERT INTO collision (CRN, user_id, user_name, course_name, room_name, start_time, end_time, collision_id, nid, flag) VALUES ($crn, $uid, '$user_name','$course_name' ,'$room_name' ,'$start_time', '$end_time','$collision_id', 66666, 0)";
-        
-        $result = db_query($sql);
-        
+			$main_uid = $fetch_data->uid;
+				
+			$main_nid = $fetch_data->nid;
+			
+			$main_username = $fetch_data->name;
+					
+			$main_course_name = $fetch_data->field_course_names_value;
+			
+			$main_course_id = $fetch_data->field_course_id_value;
+				
+			$enter_flag = false;
+				
+			$stmt1 = db_query("SELECT collision_id FROM collision where flag = 1");
+				
+			while($data = $stmt1->fetchObject()) {
+					
+				if ($main_nid == $data->collision_id) {
+			  
+					$enter_flag = true;
+			
+				}
+				
+			}
+		
+			if (!$enter_flag) {
+		   
+				$sql = "INSERT INTO collision (CRN, user_id, user_name, course_name, room_name, room_id, start_time, end_time, nid, collision_id, flag) VALUES ($main_course_id, $main_uid, '$main_username', '$main_course_name', '$room_name', $room_id, '$start_date', '$end_date', '$main_nid', '$main_nid', 1)";
+				
+				$result = db_query($sql);
+			  
+			}
+			
+		}
+		
+		return $main_nid;
+		
     }
     
 }
-
-	
-	
-
 
 function custom_views_query_alter(&$view, &$query) {
   // (Example assuming a view with an exposed filter on node title.)
@@ -323,147 +168,183 @@ function custom_views_query_alter(&$view, &$query) {
     $query->add_where(1,'node.nid', $arrayOfIds, 'IN');
 
   }
+  
   else if ($view->name == 'manger_calendar_view')
+  
   {
+      
     drupal_add_js(drupal_get_path('module', 'custom') . '/calendarJS.js');
+    
   }
+  
 }
 
 function custom_form_alter(&$form, &$form_state, $form_id) {
+    
     //dpm ($form_id);
     global $user;
+    
     //dpm(implode(',', $user->roles));  
-    if ($form_id == "manager_lock_date_time_node_form"){
+    if ($form_id == "manager_lock_date_time_node_form") {
+        
         $form['title']['#type'] = 'hidden';
+        
         $form['title']['#value'] = "Lock Time";
+        
         $form['actions']['submit']['#value'] = 'Set Lock Time';
+        
     }
     
-    //If clause for the submit_room_request form
-    else if ($form_id == "submit_room_request_node_form"){
+   /** //If clause for the submit_room_request form
+    else if ($form_id == "submit_room_request_node_form") {
+        
         $form['title']['#type'] = 'hidden';
+        
         $form['title']['#value'] = "Room Request";
+        
         $form['actions']['submit']['#value'] = 'Request Room';
         
         // Keeps the room type as NULL for the default and later updates its value 
-        $form['field_room_type_for_filter']['#type']='hidden';
+        $form['field_room_type_for_filter']['#type'] = 'hidden';
+        
         $form['#submit'][] = 'custom_form_submit';
-        
-        $current_role=implode(',', $user->roles);        
+ 
         //Inserts the collided classrooms in collision table with their current userid
-        
-        //dpm ($current_role);
-        //#if (checkRole($user->roles, "lead") || checkRole($user->roles, "manager") || checkRole($user->roles, "administrator")) {
-        if ($current_role=="authenticated user,lead,staff" || $current_role=="authenticated user,manager" ||$current_role=="authenticated user,administrator" || $current_role=="authenticated user,staff")
-        {
-           //dpm ($status);
+        if (check_role($user->roles, "lead") || check_role($user->roles, "manager") || check_role($user->roles, "administrator") || check_role($user->roles, "staff")) {
            
-           insert_other_collided_class();
-           
-           insert_collisions();
-           
-           create_save_new_node($form, $form_state, $_GET["room_name"], $_GET["start_date"], $_GET["end_date"], $_GET["course_name"], $_GET["course_id"]);
+          // create_event($form, $form_state, $room_name, $room_id, $course_name, $course_id, $start_date, $end_date);
            
         }
         
-    }    
+    }    */
     
-    else if ($form_id == "search_node_form"){
+    else if ($form_id == "search_node_form") {
+        
         $form['title']['#type'] = 'hidden';
+        
         //Changes save buttom name to search
         $form['actions']['submit']['#value'] = 'Search rooms';  
+        
   }
-  else {
-      //drupal_set_message(t('This is a different page.'), 'error');
-  }
+  
 }
 
-//#function create_save_new_node(&$form, &$form_state, $room_name, $room_id, $course_name, $course_id, $start_date, $end_date){
-function create_save_new_node(&$form, &$form_state, $room_name, $start_date, $end_date, $course_name, $course_id){
+function create_save_new_node($room_name, $room_id, $course_name, $course_id, $start_date, $end_date, $collision_id) {
     
   global $user;
   
-  //#$current_status = getStatus($room_id, $start_date, $end_date);
-  
-  $current_status=$_GET["status"];
-  //get_one_status($_GET["start_date"], $_GET["end_date"]);
+  $current_status = getStatus($room_id, $start_date, $end_date);
   
   $newNode = new stdClass();
+  
   $newNode->type = 'submit_room_request';
+  
   node_object_prepare($newNode);
-  $newNode->title = "Room_request";
+  
+  $newNode->title = "$course_name";
+  
   $newNode->uid = $user->uid;
+  
   $newNode->created = strtotime("now");
+  
   $newNode->changed = strtotime("now");
   
-  if ($current_status!='Available'){
-    $newNode->status = 0;
-  }
-  else{
-    $newNode->status = 1;
-  }
-  $newNode->comment = 2; // This node can create and view comments
-  $newNode->promote = 0;
-  $newNode->moderate = 0;
-  $newNode->sticky = 0;
-  $newNode->language = 'und';
-  
-  
-  
-  $stmt = db_query("SELECT tid FROM taxonomy_term_data WHERE name ='$room_name'");
-  $data = $stmt->fetchObject();
-  $tid = $data -> tid;
-  
-  //#$newNode->field_roomname['und'][0]['tid']= $room_id;
-  $newNode->field_roomname['und'][0]['tid']= $tid;
-  
-  $newNode->field_room_type_for_filter['und'][0]['value'] = trim((explode("-",$room_name)[1]));;
-  $newNode->field_time['und'][0]['value']= $start_date;
-  $newNode->field_time['und'][0]['value2']= $end_date;
-  $newNode->field_course_names['und'][0]['value'] = $course_name;
-  $newNode->field_course_id['und'][0]['value'] = $course_id;
-  node_save($newNode);
-  
-  
-  
-  if ($current_status =='Available'){
-      
-    drupal_set_message("Successfully requested $room_name");
+  if ($current_status != 'Available') {
     
-  }
-  
-  elseif ($current_status =='Locked'){
-      
-     drupal_set_message("$room_name is currently locked. Manager will handlle this request",'warning');
-     
+    //Sets node to unpublished
+    
+    $newNode->status = 0;
+
   }
   
   else {
-      
-    drupal_set_message("Conflict with $room_name. Manager will resolve this conflict",'warning');
     
-    drupal_set_message("$room_name will show up in your calendar after your request is accepted. Go to Collided Rooms for more details",'warning');
+    //Sets node to published
+    
+    $newNode->status = 1;
+    
+    drupal_set_message("Successfully requested $room_name");
     
   }
+
+  $newNode->comment = 2; // This node can create and view comments
   
-  drupal_goto("staff/dashboard");
+  $newNode->promote = 0;
   
+  $newNode->moderate = 0;
+  
+  $newNode->sticky = 0;
+  
+  $newNode->language = 'und';
+  
+  $newNode->field_roomname['und'][0]['tid']= $room_id;
+  
+  $newNode->field_room_type_for_filter['und'][0]['value'] = trim((explode("-",$room_name)[1]));;
+  
+  $newNode->field_time['und'][0]['value']= $start_date;
+  
+  $newNode->field_time['und'][0]['value2']= $end_date;
+  
+  $newNode->field_course_names['und'][0]['value'] = $course_name;
+  
+  $newNode->field_course_id['und'][0]['value'] = $course_id;
+  
+  node_save($newNode);
+  
+  $user_id = $newNode->uid;
+  
+  if($current_status == 'Booked') {
+      
+        $res = db_query("SELECT name from users where uid = $user_id");
+            
+        if($data = $res->fetchObject()) {
+            
+            $user_name = $data->name;
+        
+            $sql = "INSERT INTO collision (CRN, user_id, user_name, course_name, room_name, room_id, start_time, end_time, collision_id, nid, flag) VALUES ($course_id, $user_id, '$user_name', '$course_name', '$room_name', $room_id, '$start_date', '$end_date', '$collision_id', $newNode->nid, 0)";
+        
+            $result = db_query($sql);
+        
+            drupal_set_message("Conflict with $room_name. Manager will resolve this conflict", 'warning');
+    
+            drupal_set_message("$room_name will show up in your calendar after your request is accepted. Go to Collided Rooms for more details", 'warning');
+        
+        }
+        
+        else {
+            
+            drupal_set_message("Could not get user name", 'error');
+            
+        }   
+        
+   }
+    
+    else if($current_status == 'Locked') {
+    
+        $res = db_query("SELECT name from users where uid = $user_id");
+            
+        if($data = $res->fetchObject()) {
+            
+            $user_name = $data->name;
+        
+            $sql = "INSERT INTO REQUESTS (nid, user_id, user_name, CRN, course_name, room_name, room_id, start_time, end_time) VALUES ($newNode->nid, $user_id, '$user_name', $course_id, '$course_name', '$room_name', $room_id, '$start_date', '$end_date')";
+        
+            $result = db_query($sql);
+        
+            drupal_set_message("$room_name is currently locked. Manager will handlle this request", 'warning');
+        
+        }
+  
+    }
+
 }
 
-function create_event($form, $form_state, $room_name, $room_id, $course_name, $course_id, $start_date, $end_date) {
-    
-    //#insert_other_collided_class($form, $form_state, $room_name, $room_id, course_name, $course_id, $start_date, $end_date);
-    
-    //#insert_collisions($form, $form_state, $room_name, $course_name, $course_id, $start_date, $end_date);
-    
-    //#create_save_new_node($form, $form_state, $room_name, $room_id, $course_name, $course_id, $start_date, $end_date);
+function create_event($room_name, $room_id, $course_name, $course_id, $start_date, $end_date) {
+
+    $collision_id = insert_other_collided_class($room_name, $room_id, $course_name, $course_id, $start_date, $end_date);
+
+    create_save_new_node($room_name, $room_id, $course_name, $course_id, $start_date, $end_date, $collision_id);
     
 }
 
-
-function custom_form_submit($form, &$form_state) {
-   // $gg=(int)get_latest_nodeid();
-   //  drupal_set_message(t('lastest node id'.$gg));
-    //update_room_type();
-       // drupal_set_message(t('gggg The room type is updated'));
-}
+?>

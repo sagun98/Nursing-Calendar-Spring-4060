@@ -14,10 +14,21 @@ function manager_dashboard_menu() {
   // callback and other conditions are handled by the parent callback.
   $items['manager/dashboard/default'] = array(
     'type' => MENU_DEFAULT_LOCAL_TASK,
-    'title' => 'Collisions',
+    'title' => 'Conflicts',
     'description' => 'A dashboard for Manager',
     'access arguments' => array('view_manager_dashboard'),
     'weight' => 1,
+    
+  );
+  
+  $items['manager/dashboard/requests'] = array( //this creates a URL that will call this form at "examples/form-example"
+    'type' => MENU_LOCAL_TASK,
+    'title' => 'Requests', //page title
+    'description' => 'A dashboard for staff displaying all the requests',
+    'page callback' => 'drupal_get_form', //this is the function that will be called when the page is accessed.  for a form, use drupal_get_form
+    'page arguments' => array('requests_form'), //put the name of the form here
+    'access arguments' => array('view_manager_dashboard'),
+    'weight' => 2,  
     
   );
   
@@ -28,115 +39,245 @@ function manager_dashboard_menu() {
     'page callback' => 'drupal_get_form', //this is the function that will be called when the page is accessed.  for a form, use drupal_get_form
     'page arguments' => array('lead_selection_form'), //put the name of the form here
     'access arguments' => array('lead_selection'),
-    'weight' => 2,  
+    'weight' => 3,  
     
   );
   
   return $items;
+  
 }
 
-function render_manager_calendar() {
-
-  $my_view_name = 'manger_calendar_view';
+function createManagerDashboardTable($form, &$form_state) {
   
-  $my_display_name = 'manager_calendar_view';
-
-  $my_view = views_get_view($my_view_name);
+  drupal_set_message(t('Hitting Accept will delete other classes and publish the Accepted class.<br>
+  However, an email will be sent notifying other users that their classes has been rejected.'), 'warning');
   
-  if ( is_object($my_view) ) { 
+  $result = db_query("SELECT * 
+                   FROM collision 
+                   WHERE flag = 1");
+                     
+	$header = array('Room Name', 'Start Date', 'End Date', 'Course Name', 'CRN', 'Status', 'User');
+	
+	$rows = array();
+	
+	$form['collisions'] = array(
+	  
+    '#prefix' => '<div id="collisions">',
     
-  $my_view->set_display($my_display_name);
+    '#suffix' => '</div>',
+    
+    '#tree' => TRUE,
+    
+    '#theme' => 'table',
+    
+    '#header' => $header,
+    
+    '#rows' => $rows,
+    
+  );
   
-  $my_view->pre_execute();
+	// Looping for filling the table rows
+	while($data = $result->fetchObject()) {
   
-  return $my_view->render($my_display_name);
-  }
+	  $collision_id = $data->collision_id;
+	  
+    $roomName = array(
+      
+      '#type' => 'item',
+      
+      '#title' => t($data -> room_name),
+      
+    );
+    
+    $startTime = array(
+      
+      '#type' => 'item',
+      
+      '#title' => t($data -> start_time),
+      
+    );
+    
+    $endTime = array(
+      
+      '#type' => 'item',
+      
+      '#title' => t($data -> end_time),
+      
+    );
+    
+    $crn = array(
+      
+      '#type' => 'item',
+      
+      '#title' => t($data -> CRN),
+      
+    );
+    
+    $courseName = array(
+      
+      '#type' => 'item',
+      
+      '#title' => t($data -> course_name),
+      
+    );
+    
+    $status = array(
+      
+      '#type' => 'item',
+      
+      '#title' => t('Published'),
+      
+    );
+    
+    $userName = array(
+      
+      '#type' => 'item',
+      
+      '#title' => t($data -> user_name),
+      
+    );
+
+    $form['collisions']['#rows'][] = array(
+      
+      array('data' => &$roomName),
+      
+      array('data' => &$startTime),
+      
+      array('data' => &$endTime),
+      
+      array('data' => &$courseName),
+      
+      array('data' => &$crn),
+      
+      array('data' => &$status),
+      
+      array('data' => &$userName),
+      
+    );
+    
+    unset($roomName);
+      
+    unset($startTime);
+      
+    unset($endTime);
+      
+    unset($courseName);
+    
+    unset($crn);
+      
+    unset($status);
+      
+    unset($userName);
+    
+    $res = db_query("SELECT * 
+                     FROM collision 
+                     WHERE collision_id = '$collision_id' 
+                     AND flag = 0");
+    
+    while($dt = $res->fetchObject()) {
+  	  
+      $accept = array(
+        
+        '#type' => 'item',
+        
+        '#markup' => _manager_redirect_handler_link('Accept', 'manager/redirect', 'collision', $dt->room_name, $dt->room_id, $dt->start_time, $dt->end_time, $dt->course_name, $dt->CRN, $dt->user_name, $dt->user_id, $dt-> nid, $collision_id),
+        
+      );
+      
+      $reject = array(
+        
+        '#type' => 'item',
+        
+        '#markup' => _manager_redirect_handler_link('Reject', 'manager/redirect', 'collision', $dt->room_name, $dt->room_id, $dt->start_time, $dt->end_time, $dt->course_name, $dt->CRN, $dt->user_name, $dt->user_id, $dt-> nid, $collision_id),
+        
+      );
+      
+      $edit = array(
+        
+        '#type' => 'item',
+        
+        '#markup' => _manager_redirect_handler_link('Edit Course', 'edit/event', 'collision', $dt->room_name, $dt->room_id, $dt->start_time, $dt->end_time, $dt->course_name, $dt->CRN, $dt->user_name, $dt->user_id, $dt-> nid, $collision_id),
+           
+      );
+      
+      $courseName = array(
+        
+        '#type' => 'item',
+        
+        '#title' => t($dt -> course_name),
+        
+      );
+      
+      $status = array(
+        
+        '#type' => 'item',
+        
+        '#title' => t('Conflict'),
+        
+      );
+      
+      $userName = array(
+        
+        '#type' => 'item',
+        
+        '#title' => t($dt -> user_name),
+        
+      );
+      
+      $crn = array(
+        
+        '#type' => 'item',
+        
+        '#title' => t($dt -> CRN),
+        
+      );
+  
+      $form['collisions']['#rows'][] = array(
+        
+        array('data' => &$accept),
+        
+        array('data' => &$reject),
+        
+        array('data' => &$edit),
+        
+        array('data' => &$courseName),
+        
+        array('data' => &$status),
+        
+        array('data' => &$userName),
+        
+        array('data' => &$crn),
+        
+      );
+      
+      unset($accept);
+        
+      unset($reject);
+        
+      unset($edit);
+        
+      unset($courseName);
+        
+      unset($status);
+        
+      unset($userName);
+      
+      unset($crn);
+      
+  	}
+    
+	}
+	  
+	return $form;
+	  
 }
 
 function manager_dashboard_form($form, &$form_state) {
-  $form_state['results_table'] = collided_classroom_sort($form_state);
-  $form_state['rebuild'] = TRUE;
-     if (!empty($form_state['results_table'])) {
-      $form['results_table'] = array('#markup' => $form_state['results_table']);
-  }
+  
+  $form = createManagerDashboardTable($form, $form_state);
+  
   return $form;
+  
 }
-
-function managerd_dashboard_alter($form, &$form_state) {
- 
-}
-
-function collided_classroom_sort(&$form_state){
-  drupal_set_message(t('Hitting Accept will delete other classes and publish the Accepted class.<br>
-  However, an email will be sent notifying other users that their classes has been rejected.'), 'warning');
-  $output="";
-    global $user;
-    $rows=array();
-    $header= array("Room Name", "Start Date","End Date","Course Name", "Status","User", "CRN");
-    $res = db_query("SELECT * FROM collision where flag=1");
-    while($data = $res->fetchObject()){
-      $collision_id = $data->collision_id;
-	    $sec = db_query("SELECT * FROM collision where flag = 1 AND collision_id = '$collision_id'");
-      while ($dd = $sec->fetchObject()){ 
-      $rows[] = array(
-		    $dd -> room_name,
-		    $dd -> start_time,
-		    $dd -> end_time, 
-		    $dd -> course_name,
-		    "Published",
-		    $dd-> user_name,
-		    $dd->CRN,
-  );
-      }
-	    $col = db_query("SELECT * FROM collision where collision_id = '$collision_id' and flag=0 ");
-      while($coll = $col->fetchObject()){
-         $rows[] = array(
-		     "\t",
-		     "\t",
-		      l(
-              t("Accept"), 
-              '/manager/redirect', 
-              array(
-                'attributes' => array(
-                  'class' => array(
-                    'request', 
-                    'request-redirect',
-                  ), 
-                  'id' =>'request',
-                ),
-                'query' => array(
-                  'room_name' => $coll->room_name,
-                  'start_date' => $coll->start_time, 
-                  'end_date' => $coll ->end_time,
-                  'course_name' => $coll -> course_name,
-                  'course_id' => $coll->CRN,
-                  'uid' => $coll ->user_id,
-                  'collision_id' => $coll-> collision_id,
-                ), 
-                'html' => TRUE,
-                )
-              ),
-		     $coll -> course_name, 
-		     "Conflict",
-		     $coll -> user_name,
-		     $coll->CRN,
-  );
-      }
-    }
-
-   $output .= theme_table(
-		    array(
-		      "header" => $header,
-		      "rows" => $rows,
-		      "attributes" => array(""),
-		      "sticky" => false, // Table header will be sticky
-		      "caption" => "",
-		      "colgroups" => array(),
-		      "empty" => t("Table has no data!") // The message to be displayed if table is empty
-		    )
-	  );
-	  return $output;
-}
-
 
 ?>

@@ -1,79 +1,232 @@
 <?php
 function staff_collision_menu() {
+  
   $items = array();
+  
   $items['staff/collision'] = array( //this creates a URL that will call this form at "examples/form-example"
+  
     'title' => 'Staff Collision Dashboard', //page title
+    
     'description' => 'A dashboard for staff displaying all the collisions',
+    
     'page callback' => 'drupal_get_form', //this is the function that will be called when the page is accessed.  for a form, use drupal_get_form
+    
     'page arguments' => array('staff_collision_form'), //put the name of the form here
+    
     'access arguments' => array('view_collision_dashboard')
+    
   );
+  
   return $items;
+  
+}
+
+function createStaffCollisionTable($form, &$form_state) {
+
+  $result = db_query("SELECT * 
+                   FROM collision 
+                   WHERE flag = 1");
+                     
+	$header = array('Room Name', 'Start Date', 'End Date', 'Course Name', 'Status', 'User', 'CRN');
+	
+	$rows = array();
+	
+	$form['collisions'] = array(
+	  
+    '#prefix' => '<div id="collisions">',
+    
+    '#suffix' => '</div>',
+    
+    '#tree' => TRUE,
+    
+    '#theme' => 'table',
+    
+    '#header' => $header,
+    
+    '#rows' => $rows,
+    
+  );
+  
+	// Looping for filling the table rows
+	while($data = $result->fetchObject()) {
+  
+	  $collision_id = $data->collision_id;
+	  
+    $roomName = array(
+      
+      '#type' => 'item',
+      
+      '#title' => t($data -> room_name),
+      
+    );
+    
+    $startTime = array(
+      
+      '#type' => 'item',
+      
+      '#title' => t($data -> start_time),
+      
+    );
+    
+    $endTime = array(
+      
+      '#type' => 'item',
+      
+      '#title' => t($data -> end_time),
+      
+    );
+    
+    $courseName = array(
+      
+      '#type' => 'item',
+      
+      '#title' => t($data -> course_name),
+      
+    );
+    
+    $status = array(
+      
+      '#type' => 'item',
+      
+      '#title' => t('Published'),
+      
+    );
+    
+    $userName = array(
+      
+      '#type' => 'item',
+      
+      '#title' => t($data -> user_name),
+      
+    );
+    
+    $crn = array(
+      
+      '#type' => 'item',
+      
+      '#title' => t($data -> CRN),
+      
+    );
+
+    $form['collisions']['#rows'][] = array(
+      
+      array('data' => &$roomName),
+      
+      array('data' => &$startTime),
+      
+      array('data' => &$endTime),
+      
+      array('data' => &$courseName),
+      
+      array('data' => &$status),
+      
+      array('data' => &$userName),
+      
+      array('data' => &$crn),
+      
+    );
+    
+    unset($roomName);
+      
+    unset($startTime);
+      
+    unset($endTime);
+      
+    unset($courseName);
+      
+    unset($status);
+      
+    unset($userName);
+    
+    unset($crn);
+    
+    $res = db_query("SELECT * 
+                     FROM collision 
+                     WHERE collision_id = '$collision_id' 
+                     AND flag = 0");
+    
+    while($dt = $res->fetchObject()) {
+  	  
+      $blank = array(
+        
+        '#type' => 'item',
+        
+        '#title' => t("\t"),
+        
+      );
+      
+      $courseName = array(
+        
+        '#type' => 'item',
+        
+        '#title' => t($dt -> course_name),
+        
+      );
+      
+      $status = array(
+        
+        '#type' => 'item',
+        
+        '#title' => t('Conflict'),
+        
+      );
+      
+      $userName = array(
+        
+        '#type' => 'item',
+        
+        '#title' => t($dt -> user_name),
+        
+      );
+      
+      $crn = array(
+        
+        '#type' => 'item',
+        
+        '#title' => t($dt -> CRN),
+        
+      );
+  
+      $form['collisions']['#rows'][] = array(
+        
+        array('data' => &$blank),
+        
+        array('data' => &$blank),
+        
+        array('data' => &$blank),
+        
+        array('data' => &$courseName),
+        
+        array('data' => &$status),
+        
+        array('data' => &$userName),
+        
+        array('data' => &$crn),
+        
+      );
+      
+      unset($blank);
+        
+      unset($courseName);
+        
+      unset($status);
+        
+      unset($userName);
+      
+      unset($crn);
+      
+  	}
+    
+	}
+	  
+	return $form;
+	  
 }
 
 function staff_collision_form($form, &$form_state) {
-  $form_state['results_table'] = collided_classroom($form_state);
-  $form_state['rebuild'] = TRUE;
-     if (!empty($form_state['results_table'])) {
-      $form['results_table'] = array('#markup' => $form_state['results_table']);
-  }
+  
+  $form = createStaffCollisionTable($form, $form_state);
+
   return $form;
+  
 }
-
-function staff_collision_form_alter($form, &$form_state) {
- 
-}
-
-function collided_classroom(&$form_state){
-  $output="";
-    global $user;
-    $rows=array();
-    $header= array("Room Name", "Start Date","End Date","Course Name", "Status","User", "CRN");
-    $res = db_query("SELECT * FROM collision where user_id ='$user->uid' AND flag = 0");
-    while($data = $res->fetchObject()){
-      $collision_id = $data->collision_id;
-    
-	    $sec = db_query("SELECT * FROM collision where flag = 1 AND collision_id = '$collision_id'");
-      while ($dd = $sec->fetchObject()){ 
-      $rows[] = array(
-		    $dd -> room_name,
-		    $dd -> start_time,
-		    $dd -> end_time, 
-		    $dd -> course_name,
-		    "Published",
-		    $dd-> user_name,
-		    $dd->CRN,
-  );
-      }
-	    $col = db_query("SELECT * FROM collision where collision_id = '$collision_id' and flag=0 ");
-      while($coll = $col->fetchObject()){
-         $rows[] = array(
-		     "\t",
-		     "\t",
-		     "\t",
-		     $coll -> course_name, 
-		     "Conflict",
-		     $coll -> user_name,
-		     $coll->CRN,
-  );
-      }
-    }
-
-   $output .= theme_table(
-		    array(
-		      "header" => $header,
-		      "rows" => $rows,
-		      "attributes" => array(""),
-		      "sticky" => false, // Table header will be sticky
-		      "caption" => "",
-		      "colgroups" => array(),
-		      "empty" => t("Table has no data!") // The message to be displayed if table is empty
-		    )
-	  );
-	  return $output;
-}
-
-
-    
-    
-?>

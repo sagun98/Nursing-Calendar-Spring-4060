@@ -44,7 +44,7 @@ function staff_dashboard_menu() {
   
 }
 
-function _staff_dashboard_make_link() {
+function _staff_dashboard_modal_link() {
   
   return '<div id="schedule-link">' . l('Schedule Course', 'staff/dashboard/nojs', array('attributes' => array('class' => 'ctools-use-modal'))) . '</div>';
   
@@ -123,7 +123,7 @@ function get_courses_current_user(){
 	  return $courses;
 }
 
-function getStatus($id, $start_time, $end_time) {
+function getStatus($id, $start_date, $end_date) {
   
     $status = true;
     
@@ -133,17 +133,19 @@ function getStatus($id, $start_time, $end_time) {
     
     $lock_date = $lock_data->field_lock_date_time_value;
     
-    $current_date = date('Y-m-d H:i:s', time());
+    $current_date = date('Y-m-d H:i', time());
     
-    $lock_date = date('Y-m-d H:i:s',strtotime('-5 hour',strtotime($lock_date)));
+    $lock_date = date('Y-m-d H:i', strtotime('-5 hour', strtotime($lock_date)));
     
-    if (strtotime($lock_date) > strtotime($current_date)) {
+    if ($lock_date >= $current_date) {
       
-      $res = db_query("SELECT entity_id,
-              field_time_value, field_time_value2 
-              FROM field_data_field_time AS time NATURAL JOIN field_data_field_roomname AS room, node as n
-              WHERE n.status = 1 
-              AND room.field_roomname_tid = " . $id);
+      $res = db_query("SELECT entity_id, field_time_value, field_time_value2 
+                       FROM field_data_field_time AS time 
+                       NATURAL JOIN field_data_field_roomname AS room 
+                       JOIN node as n ON n.nid = time.entity_id
+                       WHERE n.status = 1 
+                       AND n.type = 'submit_room_request'
+                       AND room.field_roomname_tid = " . $id);
               
       while($data = $res->fetchObject()) {
         
@@ -151,30 +153,30 @@ function getStatus($id, $start_time, $end_time) {
   	    
   	    $end = $data -> field_time_value2;
   	    
-  	    if(($start_time >= $start && $start_time <= $end) || 
-  	        ($end_time <= $end && $end_time >= $start)) {
+  	    if(($start_date >= $start && $start_date <= $end) || 
+  	        ($end_date <= $end && $end_date >= $start)) {
   	          
-  	            $status = false;
+  	           $status = false;
   	            
-  	        }
+  	       }
   	        
-  	  }
+  	 }
   	  
       if($status) {
         
-          return 'Available';
+        return 'Available';
           
       }
       
       else {   
         
-          return 'Booked';
+        return 'Booked';
           
       }
       
-    }
+  }
     
-    else {
+  else {
       
     return "Locked";
     
@@ -191,8 +193,6 @@ function createStaffDashboardTable($form, &$form_state) {
 	    '#type' => 'select',
 	    
 	    '#options' => array_merge(array('Select a Course' => 'Select a Course'), $courses),
-	    
-	   // '#attributes' => array('onchange' => 'hideUnhideButton()'),
 	    
 	    '#ajax' => array(
 	      
@@ -228,7 +228,7 @@ function createStaffDashboardTable($form, &$form_state) {
 	  
 	  '#type' => 'item',
 
-		'#markup' => _staff_dashboard_make_link(),
+		'#markup' => _staff_dashboard_modal_link(),
 	  
 	);
 	  
@@ -237,7 +237,7 @@ function createStaffDashboardTable($form, &$form_state) {
 }
 
 function staff_dashboard_callback($ajax) {
-  
+
   if ($ajax) {
     
     ctools_include('ajax');

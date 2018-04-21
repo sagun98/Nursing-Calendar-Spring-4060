@@ -25,6 +25,8 @@ function schedule_form($form, $form_state) {
 		'#title' => t('Select CRN(s)'),
 		  
 		'#options' => $crns,
+		
+		'#required' => TRUE,
 			
 		'#validated' => TRUE,
 		
@@ -57,7 +59,7 @@ function schedule_form($form, $form_state) {
 	  '#title' => t('Select Room'),
 		  
 		'#options' => $rooms,
-			
+		
 		'#validated' => TRUE,
 		  
 	);
@@ -88,15 +90,15 @@ function schedule_form($form, $form_state) {
     // module and lets to customize timepicker options.
     '#timepicker_options' => array(
     
-      'rows' => 6,
+      'rows' => 4,
     
       'minutes' => array(
     
       'starts' => 0,
     
-      'ends' => 56,
+      'ends' => 55,
     
-      'interval' => 4,
+      'interval' => 5,
     
       ),
     
@@ -109,6 +111,7 @@ function schedule_form($form, $form_state) {
   );
     
   $form['end_date'] = array(
+    
     '#type' => 'date_popup',
   
     '#title' => t('End Time'),
@@ -131,15 +134,15 @@ function schedule_form($form, $form_state) {
   
     '#timepicker_options' => array(
   
-      'rows' => 6,
+      'rows' => 4,
   
       'minutes' => array(
   
         'starts' => 0,
   
-        'ends' => 56,
+        'ends' => 55,
   
-        'interval' => 4,
+        'interval' => 5,
   
       ),
   
@@ -181,7 +184,7 @@ function schedule_form($form, $form_state) {
   
     '#title' => t('Repeat Until'),
   
-    '#default_value' => date("Y-m-d H:i", round(strtotime("now") / 900) * 900),
+    '#default_value' => date("Y-m-d h:i", round(strtotime("now") / 900) * 900),
   
     '#date_format' => 'Y-m-d',
   
@@ -201,15 +204,15 @@ function schedule_form($form, $form_state) {
     // module and lets to customize timepicker options.
     '#timepicker_options' => array(
     
-      'rows' => 6,
+      'rows' => 4,
     
       'minutes' => array(
     
       'starts' => 0,
     
-      'ends' => 56,
+      'ends' => 55,
     
-      'interval' => 4,
+      'interval' => 5,
     
       ),
     
@@ -221,12 +224,22 @@ function schedule_form($form, $form_state) {
           
   );
   
-  $form['actions']['submit'] = array(
+  $form['book-room'] = array(
   
     '#type' => 'submit',
   
-    '#value' => t('Check Room'),
+    '#value' => t('Book Room'),
   
+  );
+  
+  $form['close'] = array(
+
+    '#type' => 'submit',
+  
+    '#value' => t('Close'),
+    
+    '#submit' => array('schedule_form_close'),
+    
   );
       
   if (!empty($form_state['results_table'])) {
@@ -239,228 +252,44 @@ function schedule_form($form, $form_state) {
   
 }
 
-
-function getAllClasses($start_time, $end_time, $course_name, &$form_state) {
-
-    $output = "";
-    
-    $end_time = substr($start_time, 0, (strrpos($start_time, " "))) . " " . $end_time;
-    
-   /** $res = db_query("SELECT name, tid FROM taxonomy_term_data");*/
-    
-	  $header = array('Book Room');
-	  
-	  $rows = array();
-	  
-	  $parts = explode("-", $course_name);
-	  
-	  $roomParts = explode("~", $form_state['values']['rooms']);
-	  
-	
-	  $status = getStatus($roomParts[1], $start_time, $end_time);
-	       
-	       if($status == "Available") {
-	         
-	         $book = "Book Room";
-	         
-	       }
-	       
-	       elseif ($status == "Locked"){
-	         
-	         $book = "Booking Closed(Manager will handle the request)"; 
-	         
-	       }
-	       
-	       else {
-	         
-	         $book = "Request";
-	         
-	       }  
-	  
-	  
-	  $rows[] = array(
-  	       
-		     l(
-		       
-              t($book), 
-              
-              '/node/add/submit-room-request', 
-              
-              array(
-                
-                'attributes' => array(
-                  
-                  'class' => array(
-                    
-                    'request', 
-                    
-                    'request-class',
-                    
-                  ), 
-                  
-                  'id' =>'request',
-                  
-                ),
-                
-                'query' => array(
-                  
-                  'room_name' => $roomParts[0],
-                  
-                  'start_date' => $start_time, 
-                  
-                  'end_date' => $end_time,
-                  
-                  'status' => $status,
-                  
-                  'course_name' => $parts[0],
-                  
-                  'course_id' => $parts[1],
-                  
-                ), 
-                
-                'html' => TRUE,
-                
-                )
-                
-              )
-              
-            );
-	    /**    
-	  // Looping for filling the table rows
-	  while($data = $res->fetchObject()){
-	    
-	       $status = getStatus($data->tid, $start_time, $end_time);
-	       
-	       if($status == "Available") {
-	         
-	         $book = "Book Room";
-	         
-	       }
-	       
-	       elseif ($status == "Locked"){
-	         
-	         $book = "Booking Closed(Manager Will Handle the request)"; 
-	         
-	       }
-	       
-	       else {
-	         
-	         $book = "Request";
-	         
-	       }  
-	       
-	       $parts =explode("-", $course_name);
-	       
-  	     $rows[] = array(
-  	       
-		     $data->name,
-		     
-		     $status,
-		     
-		     l(
-		       
-              t($book), 
-              
-              '/node/add/submit-room-request', 
-              
-              array(
-                
-                'attributes' => array(
-                  
-                  'class' => array(
-                    
-                    'request', 
-                    
-                    'request-class',
-                    
-                  ), 
-                  
-                  'id' =>'request',
-                  
-                ),
-                
-                'query' => array(
-                  
-                  'room_name' => $data->name,
-                  
-                  'start_date' => $start_time, 
-                  
-                  'end_date' => $end_time,
-                  
-                  'status' => $status,
-                  
-                  'course_name' => $parts[0],
-                  
-                  'course_id' => $parts[1],
-                  
-                ), 
-                
-                'html' => TRUE,
-                
-                )
-                
-              )
-              
-            );
-            
-        }
-
-	  // Output of table with the paging
-	  */
-	  $output .= theme_table(
-	    
-		    array(
-		      
-		      "header" => $header,
-		      
-		      "rows" => $rows,
-		      
-		      "attributes" => array(""),
-		      
-		      "sticky" => true, // Table header will be sticky
-		      
-		      "caption" => "",
-		      
-		      "colgroups" => array(),
-		      
-		      "empty" => t("Table has no data!") // The message to be displayed if table is empty
-		      
-		    )
-		    
-	  );
-	  
-	  return $output;
-	  
+function check_room_status($form, $form_state) {
+  
+  $conflicts = repeatCheckStatus(explode("~", $form_state['values']['rooms'])[1], $form_state['values']['start_date'], $form_state['values']['end_date'], $form_state['values']['repeat-until']); 
+  
 }
 
 function repeat_event_until($course_name, $course_id, $room_name, $room_id, $start_time, $end_time, $until_date) {
   
   $until_date = date('Y-m-d H:i', strtotime($until_date . ' ' . $end_time));
   
-  //dpm(date('Y-m-d H:i', strtotime(explode(' ', $start_time)[0] . ' ' . $end_time)));
-
-  while($start_time <= $until_date) {
-    
-    //create_event($form, $form_state, $room_name, $room_id, $course_name, $course_id, $start_date, $end_date);
+  $end_time = date('Y-m-d H:i', strtotime(explode(' ', $start_time)[0] . ' ' . $end_time));
   
-    dpm("Created $room_name $course_name $course_id $start_time $end_time $until_date");
-    
+  while($start_time <= $until_date) {
+
+    create_event($room_name, $room_id, $course_name, $course_id, $start_time, $end_time);
+  
     $start_time = date('Y-m-d H:i', strtotime("+7 day", strtotime($start_time)));
+    
+    $end_time = date('Y-m-d H:i', strtotime("+7 day", strtotime($end_time)));
 
   }
   
 }
 
-function schedule_form_submit($form, &$form_state) {
+function schedule_form_close($form, &$form_state) {
   
-	$form_state['results_table'] = getAllClasses($form_state['values']['start_date'], $form_state['values']['end_date'], $form_state['values']['courses'], $form_state);
+  $form_state['ajax_commands'][] = ctools_modal_command_dismiss();
+  
+}
+
+function schedule_form_submit($form, &$form_state) {
 	
 	$roomParts = explode("~", $form_state['values']['rooms']);
 	
   foreach($form_state['values']['courses'] as $course) {
     
     if($course) {
-  	  
+  	      
     	$course_parts = explode("-", $course);
     	
       repeat_event_until($course_parts[0], $course_parts[1], $roomParts[0], $roomParts[1], $form_state['values']['start_date'], $form_state['values']['end_date'], $form_state['values']['repeat-until']);
@@ -470,6 +299,50 @@ function schedule_form_submit($form, &$form_state) {
   }
 	
   $form_state['rebuild'] = TRUE;
+  
+}
+
+function repeatCheckStatus($room_id, $start_date, $end_date, $until_date) {
+  
+  $until_date = date('Y-m-d H:i', strtotime($until_date . ' ' . $end_date));
+  
+  $end_date = date('Y-m-d H:i', strtotime(explode(' ', $start_date)[0] . ' ' . $end_date));
+  
+  $date = date('Y-m-d', strtotime(explode(' ', $start_date)[0]));
+  
+  $conflicts = array();
+
+  while($start_date <= $until_date) {
+    
+    $start_time = explode(' ', $start_date)[1];
+    
+    $end_time = explode(' ', $end_date)[1];
+    
+    if(getStatus($room_id, $start_date, $end_date) == 'Booked') {
+     
+      $conflicts = "This room is booked on $date from $start_time to $end_time.";
+      
+    }
+    
+    else if(getStatus($room_id, $start_date, $end_date) == 'Locked') {
+      
+      $conflicts = "Scheduling is locked, a request will be submitted for $date from $start_time to $end_time.";
+      
+    }
+    
+    else if(getStatus($room_id, $start_date, $end_date) == 'Available') {
+      
+      $conflicts = "Available on $date from $start_time to $end_time.";
+      
+    }
+  
+    $start_date = date('Y-m-d H:i', strtotime("+7 day", strtotime($start_date)));
+    
+    $end_date = date('Y-m-d H:i', strtotime("+7 day", strtotime($end_date)));
+
+  }
+  
+  return $conflicts;
   
 }
 

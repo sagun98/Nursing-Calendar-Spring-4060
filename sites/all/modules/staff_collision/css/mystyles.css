@@ -93,17 +93,66 @@ a {
     display: none;
 }
 
-a#request.request.request-redirect{
-    border : 1px solid !important;
+.collision-handler a {
+    
+    display: inline;
+    
+    position: relative;
+    
+    top: 1em;
+    
+    left: 2em;
+    
     padding: 6px;
-    text-decoration: none;
-    margin-bottom: 5px !important;
-    width: 10px !important;
+    
+    border : 1px solid;
+    
+    border-radius: 4px; 
+    
+    border-color: #800029; 
+    
+    font-weight: bolder;
+    
+    text-decoration: none !important;
+
 }
 
-a#request.request.request-redirect:hover{
-    background-color: #800000!important;
+.collision-handler a:hover {
+    
+    background-color: #800000;
+    
     color: white !important;
+    
+}
+
+.request-handler a {
+    
+    display: inline;
+    
+    position: relative;
+    
+    top: 1.5em;
+    
+    padding: 6px;
+    
+    border : 1px solid;
+    
+    border-radius: 4px; 
+    
+    border-color: #800029; 
+    
+    font-weight: bolder;
+    
+    text-decoration: none !important;
+
+}
+
+.request-handler a:hover {
+    
+    background-color: #800000;
+    
+    color: white !important;
+    
 }
 
 .calendar-calendar td{

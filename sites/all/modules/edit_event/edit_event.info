@@ -1,0 +1,6 @@
+name = Edit Event
+description = Form used to edit course events
+core = 7.x
+dependencies[]=ctools
+
+stylesheets[all][] = ./css/edit_event.css
