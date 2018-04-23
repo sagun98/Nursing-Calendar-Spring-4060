@@ -14,12 +14,13 @@ function archiving_menu() {
 }
 
 function archiving_form($form, &$form_state) {
+    display_classes();
      $form['actions']['submit'] = array(
       '#prefix' => ' Clicking this button will register all the classes as last semester',
       '#type' => 'submit',
       '#value' => t('Register all class from last semester'),
     );
-    
+    //Check out Gitter
      $form['actions']['submit'] = array(
       '#type' => 'submit',
       '#value' => t('Register all class from last semester'),
@@ -29,139 +30,48 @@ function archiving_form($form, &$form_state) {
 }
 
 
+function display_classes(){
+    global $user;
+    $month =  ((int)date("m"));
+    dpm ((int)date("Y"));
+    dpm ((int)date("d"));
+    dpm ($user->uid);
+    $user_id = $user->uid;
+    $nid = array();
+    $start_date = array();
+    $end_date = array();
+    $stmtt = db_query("SELECT nid FROM node WHERE uid=$user_id");
+        while ($data = $stmtt->fetchObject()){
+            $nid[] = $data->nid;
+            $node=node_load($data->nid);      
+            $start_date[] = $node->field_time['und'][0]['value'];
+            $end_date[] = $node->field_time['und'][0]['value2'];
+            $start = $node->field_time['und'][0]['value'];
+            
+            $split_array=explode(" ",$start);
+            $front = $split_array[0];
+            $backk = $split_array[1];
+            $mdy = explode ("-",$front);
+            dpm ($mdy);
+            dpm ($mdy[0]);
+            dpm ($mdy[1]);
+            dpm ($mdy[2]);
+            if ($month<= 6){
+                
+            }
+            else {
+                
+            }
+        }
+    }
+
 function archiving_form_submit($form, &$form_state) {
     drupal_set_message("No classes found for last semester.","warning");
 }
 
-function get_one_status_archiving($start_time, $end_time) {
-    $status = true;
-    $GLOBALS['room_name']=$_GET["room_name"];
-    $tid= tid($_GET["room_name"]);
-    $lock = db_query("SELECT * FROM field_revision_field_lock_date_time WHERE  entity_id=(SELECT MAX(entity_id) FROM field_revision_field_lock_date_time)");
-    $lock_data = $lock->fetchObject();
-    $lock_date = $lock_data->field_lock_date_time_value;
-    $current_date = date('Y-m-d H:i:s', time());
-    $lock_date = date('Y-m-d H:i:s',strtotime('-5 hour',strtotime($lock_date)));
-    
-    if (strtotime($lock_date) > strtotime($current_date)){
-    $res = db_query("SELECT entity_id,
-            field_time_value, field_time_value2 
-            FROM field_data_field_time AS time NATURAL JOIN field_data_field_roomname AS room
-            WHERE room.field_roomname_tid = " . $tid);
-    while($data = $res->fetchObject()){
-	    $start = $data -> field_time_value;
-	    $end = $data -> field_time_value2;
-	    if(($start_time >= $start && $start_time <= $end) || 
-	        ($end_time <= $end && $end_time >= $start)) {
-	            $status = false;
-	        }
-	  }
-    if($status) {
-        return 'Available';
-    }
-    else {   
-        return 'Booked';
-    }
-    }
-    else {
-        return 'Locked';
-    }
-    
-}
 
-function insert_other_collided_class_archiving(){
-    global $user;
-    $current_status=get_one_status($_GET["start_date"], $_GET["end_date"]);
-    $room_name=$_GET['room_name'];
-    $start_time=$_GET['start_date'];
-    $end_time=$_GET['end_date'];
-    $uid=(int)$user->uid;
-
-    $stmt = db_query("SELECT tid FROM taxonomy_term_data WHERE name='$room_name'"); 
-    $data=$stmt->fetchObject();
-    $tid= $data->tid;
-    $GLOBALS['tid'] =$tid ;
-    //dpm ($tid);
-    if ($current_status=="Booked"){
-
-    $res = db_query("SELECT n.uid,n.nid
-    FROM node as n, field_data_field_roomname as rn,
-    field_data_field_time as t
-    WHERE n.status = 1
-    AND n.type = 'submit_room_request'
-    AND n.nid = rn.entity_id
-    AND rn.field_roomname_tid = $tid
-    AND n.nid = t.entity_id
-    AND '$start_time' >= t.field_time_value
-	AND '$start_time' <= t.field_time_value2
-  	OR
-	n.status = 1
-    AND n.type = 'submit_room_request'
-    AND n.nid = rn.entity_id
-    AND rn.field_roomname_tid = 1
-    AND n.nid = t.entity_id
-	AND '$end_time' <= t.field_time_value2
-	AND '$end_time' >= t.field_time_value");
-
-    $fetch_data = $res->fetchObject();
-    //dpm($fetch_data);
-    $main_uid = $fetch_data->uid;
-    $main_nid = $fetch_data->nid;
-    $GLOBALS['collision_id'] = $main_nid; 
-    
-    $r = db_query("SELECT name from users where uid=$main_uid");
-    $d=$r->fetchObject();
-    $main_username = $d->name;
-
-    //dpm (node_load($main_nid));
-     //sql to find the course name
-     $cn = db_query("SELECT field_course_names_value FROM field_data_field_course_names where entity_id=$main_nid");
-     $gg = $cn->fetchObject();
-     $main_course_name = $gg->field_course_names_value;
-     
-     
-     //sql to fine course id
-     $cn = db_query("SELECT field_course_id_value FROM field_data_field_course_id where entity_id=$main_nid");
-     $gg = $cn->fetchObject();
-     $main_course_id = $gg->field_course_id_value;
-     
-     
-    $enter_flag = false;
-     $stmt1 = db_query("SELECT collision_id FROM collision where flag=1");
-     while($st = $stmt1->fetchObject()){
-     if ($main_nid == $st->collision_id){
-        $enter_flag= true;
-        }
-     }
-    
-        if (!$enter_flag){
-            $sql="INSERT INTO collision (CRN, user_id, user_name, course_name, room_name, start_time, end_time,nid, collision_id, flag) VALUES ($main_course_id, $main_uid, '$main_username','$main_course_name' ,'$room_name' ,'$start_time', '$end_time', '$main_nid' ,'$main_nid', 1)";
-            $result = db_query($sql);
-        }
-  }
   
-  function insert_collisions_archiving(){
-    global $user;
-    $current_status=get_one_status($_GET["start_date"], $_GET["end_date"]);
-    $room_name=$_GET['room_name'];
-    $course_name =  $_GET["course_name"];
-    $start_time=$_GET['start_date'];
-    $end_time=$_GET['end_date'];
-    $uid=(int)$user->uid;
-    //$GLOBALS['collision_id'] = $room_name; 
-    $user_name = $user->name;
-    
-    $crn = $_GET["course_id"];
-    
-    if ($current_status=="Booked"){
-         $collision_id =$GLOBALS['collision_id'];
-    
-        $sql="INSERT INTO collision (CRN, user_id, user_name, course_name, room_name, start_time, end_time,collision_id,nid, flag) VALUES ($crn, $uid, '$user_name','$course_name' ,'$room_name' ,'$start_time', '$end_time','$collision_id',66666, 0)";
-        $result = db_query($sql);
-    }
-}
-
-
+ 
 
 function create_save_new_node_archiving(&$form, &$form_state,$room_name,$start_date,$end_date, $course_name, $course_id){
   global $user;
@@ -202,7 +112,6 @@ function create_save_new_node_archiving(&$form, &$form_state,$room_name,$start_d
   node_save($newNode);
   
   
-  
   if ($current_status =='Available'){
     drupal_set_message("Successfully requested $room_name");
   }
@@ -217,6 +126,6 @@ function create_save_new_node_archiving(&$form, &$form_state,$room_name,$start_d
   }
   
   drupal_goto("admin/staff-dashboard");
-}
+
 }
 ?>

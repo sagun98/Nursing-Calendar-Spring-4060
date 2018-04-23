@@ -22,6 +22,64 @@ function manager_redirect_menu() {
   
 }
 
+function manager_redirect_mail($key, &$message, $params) {
+    
+    $course_name = $params['course_name']; 
+    
+    $course_id = $params['course_id'];
+    
+    $start_date = $params['start_date'];
+    
+    $end_date = $params['end_date'];
+    
+    switch ($key) {
+      
+        case 'accept':
+        
+            // Set headers etc
+      
+            $message['to'] = $params['email'];
+      
+            $message['subject'] = t('Your Event Was Accepted');
+      
+            $message['body'][] = t("Hello @username,", array('@username' => $params['username']));
+      
+            $message['body'][] = t("Your class for $course_name-$course_id from $start_date to $end_date was accepted.");
+      
+            break;
+      
+        case 'reject':
+        
+            // Set headers etc
+      
+            $message['to'] = $params['email'];
+      
+            $message['subject'] = t('Your Event Was Rejected');
+      
+            $message['body'][] = t('Hello @username,', array('@username' => $params['username']));
+      
+            $message['body'][] = t("Your class for $course_name-$course_id from $start_date to $end_date was rejected.");
+      
+            break;
+      
+        case 'edit':
+        
+            // Set headers etc
+      
+            $message['to'] = $params['email'];
+      
+            $message['subject'] = t('Your Event Has Been Edited');
+      
+            $message['body'][] = t('Hello @username,', array('@username' => $params['username']));
+      
+            $message['body'][] = t("Your class for $course_name-$course_id from $start_date to $end_date was edited.");
+      
+            break;
+      
+    }
+  
+}
+
 
 function manager_redirect_form($form, &$form_state) {
     
@@ -33,18 +91,26 @@ function manager_redirect_form($form, &$form_state) {
         
         if($_GET['handler_type'] == 'Accept') {
             
+            $res = db_query("SELECT nid, collision_id 
+                             FROM collision
+                             WHERE collision_id = '$collision_id'");
+                     
+            while($data = $res->fetchObject()) {
+        
+                if($data->nid != $node_id) {
+                    
+                    node_delete($data->nid);
+                    
+                }
+        
+            }
+            
             $node = node_load($node_id);
             
             $node->status = 1;
             
             node_save($node);
     
-            $node1= node_load($collision_id);
-            
-            $node1->status = 0;
-            
-            node_save($node1);
-           
             delete_all_collisions($collision_id);
         
         }
@@ -57,31 +123,31 @@ function manager_redirect_form($form, &$form_state) {
     
         }
         
+        drupal_goto("manager/dashboard");
+        
     }
     
     else if($_GET['event_type'] == 'request') {
         
         if($_GET['handler_type'] == 'Accept') {
             
-            $node = node_load($node_id);
+            create_event($_GET['room_name'], $_GET['room_id'], $_GET['course_name'], $_GET['course_id'], $_GET['start_date'], $_GET['end_date']);
             
-            $node->status = 1;
-            
-            node_save($node);
-            
-            delete_request($node_id);
+            delete_request($node_id);  
         
         }
         
         else if($_GET['handler_type'] == 'Reject') {
-    
+            
             delete_request($node_id);
     
         }
         
+        drupal_goto("manager/dashboard/requests");
+        
     }
     
-    drupal_goto("manager/dashboard");
+    
     
     return $form;
 
@@ -89,24 +155,29 @@ function manager_redirect_form($form, &$form_state) {
 
 function delete_all_collisions($collision_id) {
     
-    $del = db_query("DELETE FROM collision
-                     WHERE collision_id = $collision_id");
-                     
+    $del = db_query("DELETE 
+                     FROM collision
+                     WHERE collision_id = '$collision_id'");
+            
 }
 
 function delete_collision($node_id, $collision_id) {
-    
+
+    node_delete($node_id);
+  
     $collisions_exist = FALSE;
             
-    $del = db_query("DELETE FROM collision
+    $del = db_query("DELETE 
+                     FROM collision
                      WHERE nid = $node_id");
                      
-    $res = db_query("SELECT nid, collision_id FROM collision
-                     WHERE collision_id = $collision_id");
+    $res = db_query("SELECT nid, collision_id 
+                     FROM collision
+                     WHERE collision_id = '$collision_id'");
                      
     while($data = $res->fetchObject()) {
         
-        if($data->nid != $data->collision_id) {
+        if($res->rowCount() > explode('-', $data->collision_id)[1]) {
             
             $collisions_exist = TRUE;
             

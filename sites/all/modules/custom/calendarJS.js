@@ -1,6 +1,7 @@
 window.onload = function() {
-
-    let colors = ["DeepPink", "Blue", "Chartreuse", "Red", "Aqua", "Brown", "Aquamarine", "Black", "Cyan", "DarkGoldenRod", "DarkOrchid","Dark Orange", "Gold", "Green", "GreenYellow"];
+    
+    let colors = ["#B22222", "Blue", "#1F5F7A", "#556B2F", "Red", "#CD5C5C", "Brown", "Black","#BDB76B", "#696969", "DarkGoldenRod", "DarkOrchid","DarkOrange", "#CD853F", "Green"];
+   // let colors = ["DeepPink", "Blue", "Chartreuse", "Red", "Aqua", "Brown", "Aquamarine", "Black", "Cyan", "DarkGoldenRod", "DarkOrchid","DarkOrange", "Gold", "Green", "GreenYellow"];
     let courses = ['NURS2004', 'NURS2009', 'NURS2011', 'NURS2013', 'NURS3009', 'NURS3010', 'NURS3011', 'NURS3028', 'NURS3029', 'NURS3030', 'NURS4000', 'NURS4001', 'NURS4002', 'NURS4066', 'NURS4067'];
 
     let x = document.getElementsByClassName("views-field views-field-field-course-names");

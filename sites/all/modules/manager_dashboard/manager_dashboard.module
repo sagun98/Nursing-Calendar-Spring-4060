@@ -49,12 +49,11 @@ function manager_dashboard_menu() {
 
 function createManagerDashboardTable($form, &$form_state) {
   
-  drupal_set_message(t('Hitting Accept will delete other classes and publish the Accepted class.<br>
-  However, an email will be sent notifying other users that their classes has been rejected.'), 'warning');
+  $usersCourses = get_courses_current_user();
   
   $result = db_query("SELECT * 
-                   FROM collision 
-                   WHERE flag = 1");
+                      FROM collision
+                      ORDER BY collision_id");
                      
 	$header = array('Room Name', 'Start Date', 'End Date', 'Course Name', 'CRN', 'Status', 'User');
 	
@@ -81,106 +80,105 @@ function createManagerDashboardTable($form, &$form_state) {
   
 	  $collision_id = $data->collision_id;
 	  
-    $roomName = array(
+	  if($data->flag == 1) {
+	  
+      $roomName = array(
+        
+        '#type' => 'item',
+        
+        '#title' => t($data -> room_name),
+        
+      );
       
-      '#type' => 'item',
+      $startTime = array(
+        
+        '#type' => 'item',
+        
+        '#title' => t($data -> start_time),
+        
+      );
       
-      '#title' => t($data -> room_name),
-      
-    );
+      $endTime = array(
+        
+        '#type' => 'item',
+        
+        '#title' => t($data -> end_time),
+        
+      );
     
-    $startTime = array(
+      $crn = array(
+        
+        '#type' => 'item',
+        
+        '#title' => t($data -> CRN),
+        
+      );
       
-      '#type' => 'item',
+      $courseName = array(
+        
+        '#type' => 'item',
+        
+        '#title' => t($data -> course_name),
+        
+      );
       
-      '#title' => t($data -> start_time),
+      $status = array(
+        
+        '#type' => 'item',
+        
+        '#title' => t('Published'),
+        
+      );
       
-    );
+      $userName = array(
+        
+        '#type' => 'item',
+        
+        '#title' => t($data -> user_name),
+        
+      );
+  
+      $form['collisions']['#rows'][] = array(
+        
+        array('data' => &$roomName),
+        
+        array('data' => &$startTime),
+        
+        array('data' => &$endTime),
+        
+        array('data' => &$courseName),
+        
+        array('data' => &$crn),
+        
+        array('data' => &$status),
+        
+        array('data' => &$userName),
+        
+      );
+      
+      unset($roomName);
+        
+      unset($startTime);
+        
+      unset($endTime);
+        
+      unset($courseName);
+      
+      unset($crn);
+        
+      unset($status);
+        
+      unset($userName);
     
-    $endTime = array(
-      
-      '#type' => 'item',
-      
-      '#title' => t($data -> end_time),
-      
-    );
+	  }
     
-    $crn = array(
-      
-      '#type' => 'item',
-      
-      '#title' => t($data -> CRN),
-      
-    );
-    
-    $courseName = array(
-      
-      '#type' => 'item',
-      
-      '#title' => t($data -> course_name),
-      
-    );
-    
-    $status = array(
-      
-      '#type' => 'item',
-      
-      '#title' => t('Published'),
-      
-    );
-    
-    $userName = array(
-      
-      '#type' => 'item',
-      
-      '#title' => t($data -> user_name),
-      
-    );
-
-    $form['collisions']['#rows'][] = array(
-      
-      array('data' => &$roomName),
-      
-      array('data' => &$startTime),
-      
-      array('data' => &$endTime),
-      
-      array('data' => &$courseName),
-      
-      array('data' => &$crn),
-      
-      array('data' => &$status),
-      
-      array('data' => &$userName),
-      
-    );
-    
-    unset($roomName);
-      
-    unset($startTime);
-      
-    unset($endTime);
-      
-    unset($courseName);
-    
-    unset($crn);
-      
-    unset($status);
-      
-    unset($userName);
-    
-    $res = db_query("SELECT * 
-                     FROM collision 
-                     WHERE collision_id = '$collision_id' 
-                     AND flag = 0");
-    
-    while($dt = $res->fetchObject()) {
+    else if($data->flag == 0 && in_array($data->course_name, $usersCourses)) {
   	  
       $accept = array(
         
         '#type' => 'item',
         
-        '#markup' => _manager_redirect_handler_link('Accept', 'manager/redirect', 'collision', $dt->room_name, $dt->room_id, $dt->start_time, $dt->end_time, $dt->course_name, $dt->CRN, $dt->user_name, $dt->user_id, $dt-> nid, $collision_id),
+        '#markup' => _manager_redirect_handler_link('Accept', 'manager/redirect', 'collision', $data->room_name, $data->room_id, $data->start_time, $data->end_time, $data->course_name, $data->CRN, $data->user_name, $data->user_id, $data-> nid, $collision_id),
         
       );
       
@@ -188,7 +186,7 @@ function createManagerDashboardTable($form, &$form_state) {
         
         '#type' => 'item',
         
-        '#markup' => _manager_redirect_handler_link('Reject', 'manager/redirect', 'collision', $dt->room_name, $dt->room_id, $dt->start_time, $dt->end_time, $dt->course_name, $dt->CRN, $dt->user_name, $dt->user_id, $dt-> nid, $collision_id),
+        '#markup' => _manager_redirect_handler_link('Reject', 'manager/redirect', 'collision', $data->room_name, $data->room_id, $data->start_time, $data->end_time, $data->course_name, $data->CRN, $data->user_name, $data->user_id, $data-> nid, $collision_id),
         
       );
       
@@ -196,7 +194,7 @@ function createManagerDashboardTable($form, &$form_state) {
         
         '#type' => 'item',
         
-        '#markup' => _manager_redirect_handler_link('Edit Course', 'edit/event', 'collision', $dt->room_name, $dt->room_id, $dt->start_time, $dt->end_time, $dt->course_name, $dt->CRN, $dt->user_name, $dt->user_id, $dt-> nid, $collision_id),
+        '#markup' => _manager_redirect_handler_link('Edit Course', 'edit/event', 'collision', $data->room_name, $data->room_id, $data->start_time, $data->end_time, $data->course_name, $data->CRN, $data->user_name, $data->user_id, $data-> nid, $collision_id),
            
       );
       
@@ -204,7 +202,7 @@ function createManagerDashboardTable($form, &$form_state) {
         
         '#type' => 'item',
         
-        '#title' => t($dt -> course_name),
+        '#title' => t($data -> course_name),
         
       );
       
@@ -220,7 +218,7 @@ function createManagerDashboardTable($form, &$form_state) {
         
         '#type' => 'item',
         
-        '#title' => t($dt -> user_name),
+        '#title' => t($data -> user_name),
         
       );
       
@@ -228,7 +226,7 @@ function createManagerDashboardTable($form, &$form_state) {
         
         '#type' => 'item',
         
-        '#title' => t($dt -> CRN),
+        '#title' => t($data -> CRN),
         
       );
   
@@ -241,13 +239,13 @@ function createManagerDashboardTable($form, &$form_state) {
         array('data' => &$edit),
         
         array('data' => &$courseName),
+
+        array('data' => &$crn),
         
         array('data' => &$status),
         
         array('data' => &$userName),
-        
-        array('data' => &$crn),
-        
+
       );
       
       unset($accept);
@@ -257,13 +255,13 @@ function createManagerDashboardTable($form, &$form_state) {
       unset($edit);
         
       unset($courseName);
+      
+      unset($crn);
         
       unset($status);
         
       unset($userName);
-      
-      unset($crn);
-      
+
   	}
     
 	}

@@ -56,9 +56,11 @@ function edit_event_form($form, $form_state) {
   		  
   	    '#title' => t('Select Room'),
   		  
-  		'#options' => $rooms,
+  		  '#options' => $rooms,
+  		  
+  		  '#default_value' => $_GET['room_name'] . '~' . $_GET['room_id'],
   		
-  		'#validated' => TRUE,
+  		  '#validated' => TRUE,
   		  
   	);
   		
@@ -68,7 +70,7 @@ function edit_event_form($form, $form_state) {
     
           '#title' => t('Start Time'),
     
-          '#default_value' => date("Y-m-d H:i", round(strtotime("now") / 900) * 900),
+          '#default_value' => $start_date,
     
           '#date_format' => 'Y-m-d H:i',
     
@@ -114,7 +116,7 @@ function edit_event_form($form, $form_state) {
     
       '#title' => t('End Time'),
     
-      '#default_value' => date("Y-m-d H:i", round(strtotime("+1 hour") / 900) * 900),
+      '#default_value' => $end_date,
     
       '#date_format' => "H:i",
     
@@ -192,8 +194,6 @@ function edit_event_form_submit($form, &$form_state) {
   
   $end_date = date('Y-m-d H:i', strtotime(explode(' ', $start_date)[0] . ' ' . $form_state['values']['end_date']));
   
-  node_delete($node_id);
-  
   if($_GET['event_type'] == 'collision') {
     	  
     delete_collision($node_id, $_GET['collision_id']);
@@ -206,6 +206,12 @@ function edit_event_form_submit($form, &$form_state) {
     
   }
   
+  else {
+    
+    node_delete($node_id);
+    
+  }
+  
   create_event($roomParts[0], $roomParts[1], $_GET['course_name'], $_GET['course_id'], $start_date, $end_date);
   
   drupal_goto("manager/dashboard");
@@ -213,6 +219,8 @@ function edit_event_form_submit($form, &$form_state) {
 }
 
 function delete_request($node_id) {
+  
+  node_delete($node_id);
   
   $del = db_query("DELETE FROM REQUESTS
                           WHERE nid = $node_id");

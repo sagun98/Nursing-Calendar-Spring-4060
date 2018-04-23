@@ -30,9 +30,9 @@ function staff_dashboard_menu() {
     
   );
   
-  $items['staff/dashboard/collisions'] = array( //this creates a URL that will call this form at "examples/form-example"
+  $items['staff/dashboard/conflicts'] = array( //this creates a URL that will call this form at "examples/form-example"
     'type' => MENU_LOCAL_TASK,
-    'title' => 'Collisions', //page title
+    'title' => 'Conflicts', //page title
     'description' => 'A dashboard for staff displaying all the collisions',
     'page callback' => 'drupal_get_form', //this is the function that will be called when the page is accessed.  for a form, use drupal_get_form
     'page arguments' => array('staff_collision_form'), //put the name of the form here
@@ -57,8 +57,8 @@ function get_crns_by_course($courses) {
   foreach($courses as $course) {
   
     $res = db_query("SELECT CourseName, CourseID
-            FROM COURSE
-            WHERE CourseName = '$course'");
+                     FROM COURSE
+                     WHERE CourseName = '$course'");
 
     while($data = $res -> fetchObject()) {
       
@@ -123,9 +123,11 @@ function get_courses_current_user(){
 	  return $courses;
 }
 
-function getStatus($id, $start_date, $end_date) {
+function getStatus($course_name, $course_id, $room_id, $start_date, $end_date) {
   
     $status = true;
+    
+    $sameCRN = false;
     
     $lock = db_query("SELECT * FROM field_revision_field_lock_date_time WHERE entity_id=(SELECT MAX(entity_id) FROM field_revision_field_lock_date_time)");
     
@@ -139,13 +141,15 @@ function getStatus($id, $start_date, $end_date) {
     
     if ($lock_date >= $current_date) {
       
-      $res = db_query("SELECT entity_id, field_time_value, field_time_value2 
+      $res = db_query("SELECT time.entity_id, field_time_value, field_time_value2, field_course_names_value, field_course_id_value
                        FROM field_data_field_time AS time 
-                       NATURAL JOIN field_data_field_roomname AS room 
+                       NATURAL JOIN field_data_field_roomname AS room
+                       NATURAL JOIN field_data_field_course_names AS name
+                       NATURAL JOIN field_data_field_course_id
                        JOIN node as n ON n.nid = time.entity_id
                        WHERE n.status = 1 
                        AND n.type = 'submit_room_request'
-                       AND room.field_roomname_tid = " . $id);
+                       AND room.field_roomname_tid = " . $room_id);
               
       while($data = $res->fetchObject()) {
         
@@ -153,10 +157,26 @@ function getStatus($id, $start_date, $end_date) {
   	    
   	    $end = $data -> field_time_value2;
   	    
-  	    if(($start_date >= $start && $start_date <= $end) || 
-  	        ($end_date <= $end && $end_date >= $start)) {
+  	    $course = $data -> field_course_names_value;
+  	    
+  	    $courseId = $data -> field_course_id_value;
+  	    
+  	    if((($start_date >= $start && $start_date <= $end) || 
+  	        ($end_date <= $end && $end_date >= $start)) || 
+  	        ($start_date <= $start && $end_date >= $end) && 
+  	        $status) {
   	          
-  	           $status = false;
+  	          if($course != $course_name) {
+  	            
+  	            $status = false;
+  	            
+  	          }
+              
+              else if($course == $course_name && $courseId == $course_id) {
+                
+                $sameCRN = true;
+                
+              }
   	            
   	       }
   	        
@@ -164,8 +184,18 @@ function getStatus($id, $start_date, $end_date) {
   	  
       if($status) {
         
-        return 'Available';
+        if($sameCRN) {
           
+          return 'Already Scheduled';
+          
+        }
+        
+        else {
+          
+          return 'Available';          
+          
+        }
+
       }
       
       else {   
@@ -207,8 +237,6 @@ function createStaffDashboardTable($form, &$form_state) {
 	  '#type' => 'container',
 	  
 		'#states' => array(
-
-      // Hide the settings when the cancel notify checkbox is disabled.
 
       'invisible' => array(
 

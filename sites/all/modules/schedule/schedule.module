@@ -30,16 +30,6 @@ function schedule_form($form, $form_state) {
 			
 		'#validated' => TRUE,
 		
-		'#states' => array(
-		  
-      'invisible' => array(
-      
-        ':input[name="check-all"]' => array('checked' => TRUE),
-      
-      ),
-    
-    ),
-		
 	);
 	
 	$form['check-all'] = array(
@@ -63,7 +53,7 @@ function schedule_form($form, $form_state) {
 		'#validated' => TRUE,
 		  
 	);
-		
+	
   $form['start_date'] = array(
   
     '#type' => 'date_popup',
@@ -254,15 +244,13 @@ function schedule_form($form, $form_state) {
 
 function check_room_status($form, $form_state) {
   
-  $conflicts = repeatCheckStatus(explode("~", $form_state['values']['rooms'])[1], $form_state['values']['start_date'], $form_state['values']['end_date'], $form_state['values']['repeat-until']); 
+  $conflicts = repeatCheckStatus($course_name, $course_id, explode("~", $form_state['values']['rooms'])[1], $form_state['values']['start_date'], $form_state['values']['end_date'], $form_state['values']['repeat-until']); 
   
 }
 
 function repeat_event_until($course_name, $course_id, $room_name, $room_id, $start_time, $end_time, $until_date) {
   
-  $until_date = date('Y-m-d H:i', strtotime($until_date . ' ' . $end_time));
-  
-  $end_time = date('Y-m-d H:i', strtotime(explode(' ', $start_time)[0] . ' ' . $end_time));
+  $until_date = date('Y-m-d H:i', strtotime($until_date . ' ' . explode(' ', $end_time)[1]));
   
   while($start_time <= $until_date) {
 
@@ -283,7 +271,7 @@ function schedule_form_close($form, &$form_state) {
 }
 
 function schedule_form_submit($form, &$form_state) {
-	
+  
 	$roomParts = explode("~", $form_state['values']['rooms']);
 	
   foreach($form_state['values']['courses'] as $course) {
@@ -292,7 +280,29 @@ function schedule_form_submit($form, &$form_state) {
   	      
     	$course_parts = explode("-", $course);
     	
-      repeat_event_until($course_parts[0], $course_parts[1], $roomParts[0], $roomParts[1], $form_state['values']['start_date'], $form_state['values']['end_date'], $form_state['values']['repeat-until']);
+    	$end_time = date('Y-m-d H:i', strtotime(explode(' ', $form_state['values']['start_date'])[0] . ' ' . $form_state['values']['end_date']));
+    	
+    	if($form_state['values']['start_date'] <= $end_time) {
+    	
+      	if($form_state['values']['repeat']) {
+      	
+          repeat_event_until($course_parts[0], $course_parts[1], $roomParts[0], $roomParts[1], $form_state['values']['start_date'], $form_state['values']['end_date'], $form_state['values']['repeat-until']);
+      	
+      	}
+      	
+      	else {
+      	  
+      	  create_event($roomParts[0], $roomParts[1], $course_parts[0], $course_parts[1], $form_state['values']['start_date'], $end_time);
+      	  
+    	  }
+    	
+    	}
+    	
+    	else {
+    	  
+    	  drupal_set_message('Start date is greater than end date!', 'warning');
+    	  
+    	}
     	
     }
     
@@ -302,7 +312,7 @@ function schedule_form_submit($form, &$form_state) {
   
 }
 
-function repeatCheckStatus($room_id, $start_date, $end_date, $until_date) {
+function repeatCheckStatus($course_name, $course_id, $room_id, $start_date, $end_date, $until_date) {
   
   $until_date = date('Y-m-d H:i', strtotime($until_date . ' ' . $end_date));
   
@@ -318,19 +328,21 @@ function repeatCheckStatus($room_id, $start_date, $end_date, $until_date) {
     
     $end_time = explode(' ', $end_date)[1];
     
-    if(getStatus($room_id, $start_date, $end_date) == 'Booked') {
+    $current_status = getStatus($course_name, $course_id, $room_id, $start_date, $end_date);
+    
+    if($current_status == 'Booked') {
      
       $conflicts = "This room is booked on $date from $start_time to $end_time.";
       
     }
     
-    else if(getStatus($room_id, $start_date, $end_date) == 'Locked') {
+    else if($current_status == 'Locked') {
       
       $conflicts = "Scheduling is locked, a request will be submitted for $date from $start_time to $end_time.";
       
     }
     
-    else if(getStatus($room_id, $start_date, $end_date) == 'Available') {
+    else if($current_status == 'Available') {
       
       $conflicts = "Available on $date from $start_time to $end_time.";
       

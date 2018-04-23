@@ -54,3 +54,5 @@
 <?php if ($responsive): ?>
   </div>
 <?php endif; ?>
+
+<?php print views_embed_view('your_view', 'the_display_you_want');?>

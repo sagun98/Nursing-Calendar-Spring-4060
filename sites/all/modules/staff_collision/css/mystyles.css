@@ -4,6 +4,23 @@
  * get classes from inspecting 
  */
  
+@media print {
+    
+    
+    header, footer, .region-sidebar-first, .views-field-comments-link, .pagination, .nav-tabs, .prev a, .next a  {
+        
+        display: none;
+        
+    }
+    
+    .month.day a[href]:after, .field-content a[href]:after {
+        
+        content: none !important;
+    
+    }
+    
+} 
+
 table {
     border-collapse: collapse;
     width: 100%;
@@ -117,7 +134,7 @@ a {
 
 }
 
-.collision-handler a:hover {
+.collision-handler a:hover, .request-handler a:hover {
     
     background-color: #800000;
     
@@ -147,14 +164,6 @@ a {
 
 }
 
-.request-handler a:hover {
-    
-    background-color: #800000;
-    
-    color: white !important;
-    
-}
-
 .calendar-calendar td{
     color:black;
     font-weight:bold;
@@ -163,12 +172,13 @@ a {
  * values can be altered so its shape can make a triangle or fill the entire box
  */
 .calendar-calendar .month-view .full td.date-box.today
-{
+{    
     
-    background-image: linear-gradient(135deg, #800029, #800029 22%, transparent 70%, transparent);
+     background-color:#800029;
+     /*color:white !important;*/
+    /*background-image: linear-gradient(135deg, #800029, #800029 22%, transparent 70%, transparent);*/
     /*background-image: linear-gradient(225deg, #800029, #800029 30%, transparent 90%, transparent);
     */
-
     border: 2px solid black;
 }
 
@@ -177,7 +187,22 @@ a {
     border: 2px solid black;
 }
 
+.calendar-calendar td .inner div.day.today a
+{
+    color: white !important;
+}
+
+
 .calendar-calendar td.empty
 {
     color:#800029;
+}
+
+.contents{
+    /*background: #74a5d7 !important;*/
+    /*height: 1.9em;*/
+    /*overflow: hidden;*/
+    /*margin: 0px auto;*/
+    /*color: #ffffff;*/
+    /*position: relative;*/
 }
