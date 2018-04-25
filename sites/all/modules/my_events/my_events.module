@@ -1,0 +1,206 @@
+<?php
+
+function getTeacher($courseId) {
+    
+    $res = db_query("SELECT Username
+                     FROM USER
+                     NATURAL JOIN TEACHES
+                     WHERE CourseID = '$courseId'");
+                     
+    if($data = $res->fetchObject()) {
+        
+        return $data->Username;
+        
+    }
+    
+    else {
+        
+        return "Not Found";
+        
+    }
+    
+}
+
+function createMyEventsTable($form, &$form_state) {
+    
+    global $user;
+  
+    $output = "";
+  
+    if(check_role($user->roles, "administrator") || check_role($user->roles, "manager")) {
+  
+        $res = db_query("SELECT node.nid, node.uid, user.name AS user_name, courseName.field_course_names_value, courseID.field_course_id_value, time.field_time_value, time.field_time_value2, roomname.name AS name, roomname.tid 
+                         FROM node AS node
+                         JOIN users AS user ON node.uid = user.uid
+                         JOIN field_data_field_roomname AS room ON node.nid = room.entity_id
+                         JOIN taxonomy_term_data AS roomname ON room.field_roomname_tid = roomname.tid
+                         JOIN field_data_field_time AS time ON node.nid = time.entity_id
+    	   			     JOIN field_data_field_course_names AS courseName ON node.nid = courseName.entity_id
+    				     JOIN field_data_field_course_id AS courseID ON node.nid = courseID.entity_id
+                         WHERE node.status = 1
+                         AND node.type = 'submit_room_request'
+                         ORDER BY time.field_time_value DESC");
+    
+    }
+    
+    else {
+    
+        $res = db_query("SELECT node.nid, node.uid, user.name AS user_name, courseName.field_course_names_value, courseID.field_course_id_value, time.field_time_value, time.field_time_value2, roomname.name AS name, roomname.tid 
+                         FROM node AS node
+                         JOIN users AS user ON node.uid = user.uid
+                         JOIN field_data_field_roomname AS room ON node.nid = room.entity_id
+                         JOIN taxonomy_term_data AS roomname ON room.field_roomname_tid = roomname.tid
+                         JOIN field_data_field_time AS time ON node.nid = time.entity_id
+    	   			     JOIN field_data_field_course_names AS courseName ON node.nid = courseName.entity_id
+    				     JOIN field_data_field_course_id AS courseID ON node.nid = courseID.entity_id
+                         WHERE node.status = 1
+                         AND node.type = 'submit_room_request'
+                         AND courseID.field_course_id_value IN (SELECT C.CourseID
+                                                                FROM LEAD L JOIN COURSE C ON C.CourseName = L.CourseName
+                                                                JOIN field_data_field_cwid AS fdfc ON CWID = fdfc.field_cwid_value  
+                                                                JOIN users AS U ON fdfc.entity_id = U.uid 
+                                                                AND U.uid = '$user->uid')
+                        ORDER BY time.field_time_value DESC");
+    
+    }           
+    
+    $header = array('Delete', 'Edit', 'Room Name', 'Start Date', 'End Date', 'Course Name', 'CRN', 'Teacher');
+	
+	$rows = array();
+	
+	$form['my_events'] = array(
+	  
+        '#prefix' => '<div id="my-events">',
+    
+        '#suffix' => '</div>',
+    
+        '#tree' => TRUE,
+    
+        '#theme' => 'table',
+    
+        '#header' => $header,
+    
+        '#rows' => $rows,
+    
+    );
+  
+	// Looping for filling the table rows
+	while($data = $res->fetchObject()) {
+	    
+	  $delete = array(
+        
+        '#type' => 'item',
+        
+        '#markup' => _manager_redirect_handler_link('Delete', 'manager/redirect', 'event', $data->name, $data->tid, $data->field_time_value, $data->field_time_value2, $data->field_course_names_value, $data->field_course_id_value, $data->user_name, $data->uid, $data->nid),
+        
+      );
+      
+      $edit = array(
+        
+        '#type' => 'item',
+        
+        '#markup' => _manager_redirect_handler_link('Edit', 'edit/event', 'event', $data->name, $data->tid, $data->field_time_value, $data->field_time_value2, $data->field_course_names_value, $data->field_course_id_value, $data->user_name, $data->uid, $data->nid),
+           
+      );
+
+      $roomName = array(
+        
+        '#type' => 'item',
+        
+        '#title' => t($data->name),
+        
+      );
+      
+      $startTime = array(
+        
+        '#type' => 'item',
+        
+        '#title' => t($data->field_time_value),
+        
+      );
+      
+      $endTime = array(
+        
+        '#type' => 'item',
+        
+        '#title' => t($data->field_time_value2),
+        
+      );
+    
+      $crn = array(
+        
+        '#type' => 'item',
+        
+        '#title' => t($data->field_course_id_value),
+        
+      );
+      
+      $courseName = array(
+        
+        '#type' => 'item',
+        
+        '#title' => t($data->field_course_names_value),
+        
+      );
+      
+      $userName = array(
+        
+        '#type' => 'item',
+        
+        '#title' => t(getTeacher($data ->field_course_id_value)),
+        
+      );
+  
+      $form['my_events']['#rows'][] = array(
+          
+        array('data' => &$delete),
+        
+        array('data' => &$edit),
+        
+        array('data' => &$roomName),
+        
+        array('data' => &$startTime),
+        
+        array('data' => &$endTime),
+        
+        array('data' => &$courseName),
+        
+        array('data' => &$crn),
+        
+        array('data' => &$userName),
+        
+      );
+      
+      unset($delete);
+        
+      unset($edit);
+        
+      
+      unset($roomName);
+        
+      unset($startTime);
+        
+      unset($endTime);
+        
+      unset($courseName);
+      
+      unset($crn);
+
+      unset($userName);
+    
+	}
+	  
+	  
+	return $form;
+	  
+}
+
+function my_events_form($form, &$form_state) {
+  
+  $form = createMyEventsTable($form, $form_state);
+  
+  return $form;
+  
+}
+
+?>

@@ -1,0 +1,3 @@
+name = My Events
+description = A list of all events for a given teacher
+core = 7.x

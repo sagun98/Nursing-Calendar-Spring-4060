@@ -7,13 +7,13 @@
 @media print {
     
     
-    header, footer, .region-sidebar-first, .views-field-comments-link, .pagination, .nav-tabs, .prev a, .next a  {
+    header, footer, .region-sidebar-first, .views-field-comments-link, .pagination li a, .pagination li span, .action-links li a, .nav-tabs, .prev a, .next a, #print, #edit-filters, #edit-submit {
         
         display: none;
         
     }
     
-    .month.day a[href]:after, .field-content a[href]:after {
+    a[href]:after {
         
         content: none !important;
     
@@ -134,7 +134,7 @@ a {
 
 }
 
-.collision-handler a:hover, .request-handler a:hover {
+.collision-handler a:hover, .request-handler a:hover, .event-handler a:hover {
     
     background-color: #800000;
     
@@ -142,7 +142,7 @@ a {
     
 }
 
-.request-handler a {
+.request-handler a, .event-handler a {
     
     display: inline;
     
@@ -198,11 +198,106 @@ a {
     color:#800029;
 }
 
-.contents{
-    /*background: #74a5d7 !important;*/
-    /*height: 1.9em;*/
-    /*overflow: hidden;*/
-    /*margin: 0px auto;*/
-    /*color: #ffffff;*/
-    /*position: relative;*/
+.navbar.container.navbar-default{
+    background: #800029 url(http://www.ulm.edu/_resources/images/line-pattern_0.png) !important;
+    height: 130px !important;
+    min-height: 110px !important;
+    min-width: 1000px !important;
+    width: 100% !important;
 }
+
+.logo.navbar-btn.pull-left>img{
+    height: 110px !important;
+}
+
+.name.navbar-brand{
+    margin: 35px 0;
+}
+
+.date-box.today>.inner>.month.day>a {
+    color: white !important;
+}
+
+/*.block-title {*/
+/*    margin-left: 0.3em !important;*/
+/*    color: white !important;*/
+/*}*/
+/*.region.region-sidebar-first.well{*/
+    /*background-color :#800029 !important ;*/
+/*    color :#D3D3D3  !important;*/
+/*    background:#800029  ;*/
+/*    padding: 10px 0 18px 0px;*/
+/*    width: 100%;*/
+/*    opacity : 0.9 !important;*/
+    
+/*}*/
+
+/*.leaf>a{*/
+/* color : white !important;*/
+/*}*/
+
+/*.leaf>a:hover{*/
+/* color : #D3D3D3 !important;*/
+/* background-color: #800029 !important;*/
+/*}*/
+
+/*.leaf:nth-child(even) {*/
+    
+/*}*/
+
+/*.leaf:nth-child(odd) {*/
+    /*background-color: #C0C0C0	;*/
+/*}*/
+
+
+/*CSS of the RSS feeds*/
+
+.calendar-calendar .month-view .full td.multi-day .inner .monthview .continues, .calendar-calendar .month-view .full td.multi-day .inner .monthview .cutoff {
+    background-color : silver !important;
+}
+
+.calendar-calendar .month-view .full td.multi-day div.monthview, .calendar-calendar .week-view .full td.multi-day div.weekview, .calendar-calendar .day-view .full td.multi-day div.dayview {
+    background-color : silver !important;
+}
+
+.contents>a{
+    color: maroon !important;
+}
+
+.cutoff{
+     background-color : silver !important;
+}
+
+/*modal css*/
+.popups-container{
+    margin-bottom: 50em !important;
+}
+
+
+/*modal css for schedule events*/
+/*.form-item.form-item-courses.form-type-checkboxes.form-group{*/
+/*    float:left;*/
+/*    width: 100%;*/
+/*    position: absolute;*/
+/*    margin-left: 50em;*/
+/*    padding: 1em;*/
+/*}*/
+
+
+
+/*.form-item.form-item-start-date.form-type-date-popup.form-group{*/
+/*    position: absolute;*/
+/*    margin-top: 5em;*/
+/*}*/
+
+/*.form-item.form-item-end-date.form-type-date-popup.form-group{*/
+/*    float:right;*/
+/*    margin-left: 24em;*/
+/*position: absolute;*/
+/*margin-top: 5em;*/
+/*}*/
+/*.btn.btn-default.form-submit{*/
+/*    position:fixed;*/
+
+/*}*/
+

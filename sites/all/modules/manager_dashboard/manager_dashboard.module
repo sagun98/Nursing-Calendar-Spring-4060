@@ -35,11 +35,22 @@ function manager_dashboard_menu() {
   $items['manager/dashboard/lead-selection'] = array( //this creates a URL that will call this form at "examples/form-example"
     'type' => MENU_LOCAL_TASK,
     'title' => 'Lead Selection', //page title
-    'description' => 'A dashboard for staff displaying all the collisions',
+    'description' => 'A dashboard for selecting the lead teacher',
     'page callback' => 'drupal_get_form', //this is the function that will be called when the page is accessed.  for a form, use drupal_get_form
     'page arguments' => array('lead_selection_form'), //put the name of the form here
     'access arguments' => array('lead_selection'),
     'weight' => 3,  
+    
+  );
+  
+  $items['manager/dashboard/my/events'] = array( //this creates a URL that will call this form at "examples/form-example"
+    'type' => MENU_LOCAL_TASK,
+    'title' => 'My Events', //page title
+    'description' => 'A dashboard for staff displaying all the events for the current user',
+    'page callback' => 'drupal_get_form', //this is the function that will be called when the page is accessed.  for a form, use drupal_get_form
+    'page arguments' => array('my_events_form'), //put the name of the form here
+    'access arguments' => array('access content'),
+    'weight' => 4,  
     
   );
   
@@ -48,13 +59,35 @@ function manager_dashboard_menu() {
 }
 
 function createManagerDashboardTable($form, &$form_state) {
+
+  global $user;
   
   $usersCourses = get_courses_current_user();
   
-  $result = db_query("SELECT * 
+  if(check_role($user -> roles, "administrator") || check_role($user -> roles, "manager")) {
+    
+   $result = db_query("SELECT * 
                       FROM collision
-                      ORDER BY collision_id");
-                     
+                      ORDER BY collision_id, id");
+    
+  }
+  
+  else {
+  
+    $result = db_query("SELECT * 
+                        FROM collision
+                        WHERE collision_id IN (SELECT collision_id
+                                               FROM collision
+                                               WHERE flag = 0
+                                               AND course_name IN (SELECT C.CourseName
+                                                                   FROM LEAD L JOIN COURSE C ON C.CourseName = L.CourseName
+                                                                   JOIN field_data_field_cwid AS fdfc ON CWID = fdfc.field_cwid_value  
+                                                                   JOIN users AS U ON fdfc.entity_id = U.uid 
+                                                                   WHERE U.uid = '$user->uid'))
+                        ORDER BY collision_id, id");
+    
+  }         
+  
 	$header = array('Room Name', 'Start Date', 'End Date', 'Course Name', 'CRN', 'Status', 'User');
 	
 	$rows = array();
@@ -173,14 +206,30 @@ function createManagerDashboardTable($form, &$form_state) {
 	  }
     
     else if($data->flag == 0 && in_array($data->course_name, $usersCourses)) {
-  	  
-      $accept = array(
+      
+      if(check_role($user -> roles, "administrator") || check_role($user -> roles, "manager")) {
+
+        $accept = array(
+          
+          '#type' => 'item',
+          
+          '#markup' => _manager_redirect_handler_link('Accept', 'manager/redirect', 'collision', $data->room_name, $data->room_id, $data->start_time, $data->end_time, $data->course_name, $data->CRN, $data->user_name, $data->user_id, $data-> nid, $collision_id),
+          
+        );
+      
+      }
+      
+      else {
         
-        '#type' => 'item',
+        $accept = array(
+            
+            '#type' => 'item',
+            
+            '#title' => t("\t"),
+            
+        );
         
-        '#markup' => _manager_redirect_handler_link('Accept', 'manager/redirect', 'collision', $data->room_name, $data->room_id, $data->start_time, $data->end_time, $data->course_name, $data->CRN, $data->user_name, $data->user_id, $data-> nid, $collision_id),
-        
-      );
+      }
       
       $reject = array(
         
@@ -194,7 +243,7 @@ function createManagerDashboardTable($form, &$form_state) {
         
         '#type' => 'item',
         
-        '#markup' => _manager_redirect_handler_link('Edit Course', 'edit/event', 'collision', $data->room_name, $data->room_id, $data->start_time, $data->end_time, $data->course_name, $data->CRN, $data->user_name, $data->user_id, $data-> nid, $collision_id),
+        '#markup' => _manager_redirect_handler_link('Edit', 'edit/event', 'collision', $data->room_name, $data->room_id, $data->start_time, $data->end_time, $data->course_name, $data->CRN, $data->user_name, $data->user_id, $data-> nid, $collision_id),
            
       );
       
@@ -272,9 +321,9 @@ function createManagerDashboardTable($form, &$form_state) {
 
 function manager_dashboard_form($form, &$form_state) {
   
-  $form = createManagerDashboardTable($form, $form_state);
+    $form = createManagerDashboardTable($form, $form_state);
   
-  return $form;
+    return $form;
   
 }
 

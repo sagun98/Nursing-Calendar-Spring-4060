@@ -22,7 +22,9 @@ function manager_redirect_menu() {
   
 }
 
-function manager_redirect_mail($key, &$message, $params) {
+function build_message($key, $params) {
+    
+    $room_name = $params['room_name'];
     
     $course_name = $params['course_name']; 
     
@@ -32,58 +34,113 @@ function manager_redirect_mail($key, &$message, $params) {
     
     $end_date = $params['end_date'];
     
+    $username = $params['username'];
+    
     switch ($key) {
       
-        case 'accept':
-        
-            // Set headers etc
-      
-            $message['to'] = $params['email'];
-      
+        case 'Accept':
+
             $message['subject'] = t('Your Event Was Accepted');
       
-            $message['body'][] = t("Hello @username,", array('@username' => $params['username']));
+            $message['body'] = t("Hello $username,\n");
       
-            $message['body'][] = t("Your class for $course_name-$course_id from $start_date to $end_date was accepted.");
+            $message['body'] .= t("Your class in $room_name for $course_name-$course_id from $start_date to $end_date was accepted.");
       
             break;
       
-        case 'reject':
+        case 'Reject':
         
-            // Set headers etc
-      
-            $message['to'] = $params['email'];
-      
             $message['subject'] = t('Your Event Was Rejected');
       
-            $message['body'][] = t('Hello @username,', array('@username' => $params['username']));
+            $message['body'] = t("Hello $username,\n");
       
-            $message['body'][] = t("Your class for $course_name-$course_id from $start_date to $end_date was rejected.");
+            $message['body'] .= t("Your class in $room_name for $course_name-$course_id from $start_date to $end_date was rejected.");
+      
+            break;
+            
+        case 'Delete':
+        
+            $message['subject'] = t('Your Event Was Deleted');
+      
+            $message['body'] = t("Hello $username,\n");
+      
+            $message['body'] .= t("Your class in $room_name for $course_name-$course_id from $start_date to $end_date was deleted.");
       
             break;
       
-        case 'edit':
-        
-            // Set headers etc
-      
-            $message['to'] = $params['email'];
-      
+        case 'Edit':
+
             $message['subject'] = t('Your Event Has Been Edited');
       
-            $message['body'][] = t('Hello @username,', array('@username' => $params['username']));
+            $message['body'] = t("Hello $username,\n");
       
-            $message['body'][] = t("Your class for $course_name-$course_id from $start_date to $end_date was edited.");
+            $message['body'] .= t("Your class in $room_name for $course_name-$course_id from $start_date to $end_date was edited.");
       
             break;
       
     }
+    
+    return $message;
   
 }
 
+function manager_redirect_drupal_mail($from = 'default_from', $to, $subject, $message) {
+  $my_module = 'manager_redirect';
+  $my_mail_token = microtime();
+  if ($from == 'default_from') {
+    // Change this to your own default 'from' email address.
+    $from = variable_get('system_mail', 'example@nursing-calendar-spring-4060-sagun98.c9users.io');
+  }
+  $message = array(
+    'id' => $my_module . '_' . $my_mail_token,
+    'to' => $to,
+    'subject' => $subject,
+    'body' => array($message),
+    'headers' => array(
+      'From' => $from, 
+      'Sender' => $from, 
+      'Return-Path' => $from,
+    ),
+  );
+  $system = drupal_mail_system($my_module, $my_mail_token);
+  $message = $system->format($message);
+  if ($system->mail($message)) {
+    return TRUE;
+  }
+  else {
+    return FALSE;
+  }
+}
 
 function manager_redirect_form($form, &$form_state) {
     
+    global $user;
+    
     $node_id = $_GET['node_id'];
+    
+    $params['room_name'] = $_GET['room_name'];
+            
+    $params['course_name'] = $_GET['course_name']; 
+    
+    $params['course_id'] = $_GET['course_id'];
+    
+    $params['start_date'] = $_GET['start_date'];
+    
+    $params['end_date'] = $_GET['end_date'];
+        
+    $params['username'] = getUsername($_GET['uid']);
+    
+    $to = variable_get('system_mail', getEmail($_GET['uid']));
+    
+    $from = variable_get('system_mail', $user->mail);
+    
+    $message = build_message($_GET['handler_type'], $params);
+    
+    $key = $_GET['handler_type'];
+    
+    $subject = $message['subject'];
+    
+    $body = $message['body'];
 
     if($_GET['event_type'] == 'collision') {
     
@@ -112,6 +169,8 @@ function manager_redirect_form($form, &$form_state) {
             node_save($node);
     
             delete_all_collisions($collision_id);
+            
+            drupal_set_message("Event was accepted");
         
         }
         
@@ -120,10 +179,14 @@ function manager_redirect_form($form, &$form_state) {
             node_delete($node_id);
             
             delete_collision($node_id, $collision_id);
+            
+            drupal_set_message("Event was rejected");
     
         }
+            
+        //$mailResult = manager_redirect_drupal_mail($from, $to, $subject, $body);
         
-        drupal_goto("manager/dashboard");
+        drupal_goto("staff/dashboard/conflicts");
         
     }
     
@@ -131,23 +194,39 @@ function manager_redirect_form($form, &$form_state) {
         
         if($_GET['handler_type'] == 'Accept') {
             
-            create_event($_GET['room_name'], $_GET['room_id'], $_GET['course_name'], $_GET['course_id'], $_GET['start_date'], $_GET['end_date']);
+            create_event($_GET['room_name'], $_GET['room_id'], $_GET['course_name'], $_GET['course_id'], $_GET['start_date'], $_GET['end_date'], TRUE);
             
             delete_request($node_id);  
+            
+            drupal_set_message("Event was accepted");
         
         }
         
         else if($_GET['handler_type'] == 'Reject') {
             
             delete_request($node_id);
+            
+            drupal_set_message("Event was rejected");
     
         }
         
-        drupal_goto("manager/dashboard/requests");
+       // $mailResult = manager_redirect_drupal_mail($from, $to, $subject, $body);
+        
+        drupal_goto("staff/dashboard/requests");
         
     }
     
-    
+    else if($_GET['event_type'] == 'event') {
+        
+        delete_event($node_id);
+
+        //$mailResult = manager_redirect_drupal_mail($from, $to, $subject, $body);
+        
+        drupal_set_message("Event was deleted");
+
+        drupal_goto("staff/dashboard/events");
+        
+    }
     
     return $form;
 
@@ -193,26 +272,32 @@ function delete_collision($node_id, $collision_id) {
                      
 }
 
-function get_nid($tid, $start_time, $end_time, $uid, $crn) {
-
-    $sel= db_query("SELECT n.uid, n.nid
-                    FROM node AS n
-                    JOIN field_data_field_roomname AS rn ON n.nid = rn.entity_id
-                    JOIN field_data_field_time AS t ON n.nid = t.entity_id
-                    JOIN field_data_field_course_id AS crn ON n.nid = crn.entity_id
-                    WHERE n.status = 0
-                    AND n.uid = $uid
-                    AND n.type = 'submit_room_request'
-                    AND rn.field_roomname_tid = $tid
-                    AND '$start_time'= t.field_time_value
-                	AND '$end_time'= t.field_time_value2
-                    AND crn.field_course_id_value = $crn");
-        	
-	$selec = $sel->fetchObject();
-	    
-	return $selec->nid;
-	    
+function getEmail($user_id) {
+    
+    $res = db_query("SELECT mail
+             FROM users 
+             WHERE uid = $user_id");
+             
+    if($data = $res->fetchObject()) {
+        
+        return $data->mail;
+        
+    }
+    
 }
+
+function getUsername($user_id) {
     
+    $res = db_query("SELECT name
+             FROM users 
+             WHERE uid = $user_id");
+             
+    if($data = $res->fetchObject()) {
+        
+        return $data->name;
+        
+    }
     
+}
+
 ?>

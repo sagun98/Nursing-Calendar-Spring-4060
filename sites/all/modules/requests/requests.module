@@ -57,6 +57,8 @@ function _manager_redirect_handler_link($link_name, $href, $event_type, $room_na
 }
 
 function createRequestsTable($form, &$form_state) {
+
+    global $user;
   
     $usersCourses = get_courses_current_user();
   

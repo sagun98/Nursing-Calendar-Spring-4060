@@ -65,7 +65,8 @@ function createLeadSelectionTable($form, &$form_state) {
   $output = "";
     
   $res = db_query("SELECT DISTINCT CourseName, Title 
-                   FROM COURSE");
+                   FROM COURSE
+                   ORDER BY CourseName");
                      
 	$header = array('Course Name', 'Course Title', 'Lead');
 	
@@ -209,18 +210,36 @@ function update_lead($course, $lead, $teacher) {
 
 function remove_lead($course, $lead) {
   
+  $isLead = TRUE;
+  
   db_query("DELETE FROM LEAD
             WHERE CWID = '$lead' AND CourseName = '$course'");
                     
   $res = db_query("SELECT uid 
                    FROM users AS user JOIN field_data_field_cwid AS field
                    ON user.uid = field.entity_id
+                   JOIN LEAD ON CWID = field.field_cwid_value
                    WHERE field.field_cwid_value = '$lead'");
                    
-  if($data = $res->fetchObject()) {
+  if($res->rowCount() == 0) {
     
-    custom_remove_role_from_user($data -> uid, 'lead');
+    $isLead = FALSE;
     
+  }
+                   
+  if(!$isLead) {
+                   
+    $result = db_query("SELECT uid 
+                     FROM users AS user JOIN field_data_field_cwid AS field
+                     ON user.uid = field.entity_id
+                     WHERE field.field_cwid_value = '$lead'");
+                     
+    if($data = $result->fetchObject()) {
+      
+      custom_remove_role_from_user($data -> uid, 'lead');
+      
+    }
+  
   }
   
 }
@@ -252,23 +271,37 @@ function insert_lead($course, $teacher) {
  *   String value of role to be removed.
  */
 function custom_remove_role_from_user($user, $role_name) {
+  
   // For convenience, we'll allow user ids as well as full user objects.
   if (is_numeric($user)) {
+    
     $user = user_load($user);
+    
   }
+  
   // Only remove the role if the user already has it.
   $key = array_search($role_name, $user->roles);
+  
   if ($key == TRUE) {
+    
     // Get the rid from the roles table.
     $roles = user_roles(TRUE);
+    
     $rid = array_search($role_name, $roles);
+    
     if ($rid != FALSE) {
+      
       // Make a copy of the roles array, without the deleted one.
       $new_roles = array();
+      
       foreach($user->roles as $id => $name) {
+        
         if ($id != $rid) {
+          
           $new_roles[$id] = $name;
+          
         }
+        
       }
       
       user_save($user, array('roles' => $new_roles));
@@ -291,22 +324,36 @@ function custom_remove_role_from_user($user, $role_name) {
  * @see http_://api.drupal.org/api/drupal/modules--user--user.module/function/user_save
  */
 function custom_add_role_to_user($user, $role_name) {
+  
   // For convenience, we'll allow user ids as well as full user objects.
   if (is_numeric($user)) {
+    
     $user = user_load($user);
+    
   }
+  
   // If the user doesn't already have the role, add the role to that user.
   $key = array_search($role_name, $user->roles);
+  
   if ($key == FALSE) {
+    
     // Get the rid from the roles table.
     $roles = user_roles(TRUE);
+    
     $rid = array_search($role_name, $roles);
+    
     if ($rid != FALSE) {
+      
       $new_role[$rid] = $role_name;
+      
       $all_roles = $user->roles + $new_role; // Add new role to existing roles.
+      
       user_save($user, array('roles' => $all_roles));
+      
     }
+    
   }
+  
 }
 
 ?>

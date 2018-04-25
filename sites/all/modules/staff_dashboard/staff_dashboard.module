@@ -5,7 +5,7 @@ function staff_dashboard_menu() {
   $items = array();
   
   $items['staff/dashboard'] = array(
-    'title' => 'Staff Dashboard',
+    'title' => 'Dashboard',
     'description' => 'A dashboard for staff',
     'page callback' => 'drupal_get_form', //this is the function that will be called when the page is accessed.  for a form, use drupal_get_form
     'page arguments' => array('staff_dashboard_form'), //put the name of the form here
@@ -30,14 +30,50 @@ function staff_dashboard_menu() {
     
   );
   
-  $items['staff/dashboard/conflicts'] = array( //this creates a URL that will call this form at "examples/form-example"
+  $items['staff/dashboard/events'] = array( //this creates a URL that will call this form at "examples/form-example"
     'type' => MENU_LOCAL_TASK,
-    'title' => 'Conflicts', //page title
-    'description' => 'A dashboard for staff displaying all the collisions',
+    'title' => 'Events', //page title
+    'description' => 'A dashboard for staff displaying all the events for the current user',
     'page callback' => 'drupal_get_form', //this is the function that will be called when the page is accessed.  for a form, use drupal_get_form
-    'page arguments' => array('staff_collision_form'), //put the name of the form here
-    'access arguments' => array('view_collision_dashboard'),
+    'page arguments' => array('my_events_form'), //put the name of the form here
+    'access arguments' => array('view_staff_dashboard'),
     'weight' => 2,  
+    
+  );
+  
+  // For the default local task, we need very little configuration, as the
+  // callback and other conditions are handled by the parent callback.
+  $items['staff/dashboard/conflicts'] = array(
+    'type' => MENU_LOCAL_TASK,
+    'title' => 'Conflicts',
+    'description' => 'A dashboard for managers',
+    'page callback' => 'drupal_get_form', //this is the function that will be called when the page is accessed.  for a form, use drupal_get_form
+    'page arguments' => array('manager_dashboard_form'), //put the name of the form here
+    'access arguments' => array('view_collision_dashboard'),
+    'weight' => 4,
+    
+  );
+  
+  $items['staff/dashboard/requests'] = array( //this creates a URL that will call this form at "examples/form-example"
+    'type' => MENU_LOCAL_TASK,
+    'title' => 'Requests', //page title
+    'description' => 'A dashboard for staff displaying all the requests',
+    'page callback' => 'drupal_get_form', //this is the function that will be called when the page is accessed.  for a form, use drupal_get_form
+    'page arguments' => array('requests_form'), //put the name of the form here
+    'access arguments' => array('view_collision_dashboard'),
+    'weight' => 5,  
+    
+  );
+  
+  $items['staff/dashboard/lead-selection'] = array( //this creates a URL that will call this form at "examples/form-example"
+    'type' => MENU_LOCAL_TASK,
+    'title' => 'Lead Selection', //page title
+    'description' => 'A dashboard for selecting the lead teacher',
+    'page callback' => 'drupal_get_form', //this is the function that will be called when the page is accessed.  for a form, use drupal_get_form
+    'page arguments' => array('lead_selection_form'), //put the name of the form here
+    'access arguments' => array('lead_selection'),
+    'weight' => 6,  
+    
   );
   
   return $items;
@@ -104,7 +140,7 @@ function get_courses_current_user(){
     else {
       
       $result = db_query("SELECT C.CourseID, C.CourseName, C.Semester
-                          FROM LEAD L LEFT JOIN COURSE C ON C.CourseName = L.CourseName
+                          FROM LEAD L JOIN COURSE C ON C.CourseName = L.CourseName
                           JOIN field_data_field_cwid AS fdfc ON CWID = fdfc.field_cwid_value  
                           JOIN users AS U ON fdfc.entity_id = U.uid 
                           AND U.uid = '$user->uid'");
@@ -123,13 +159,16 @@ function get_courses_current_user(){
 	  return $courses;
 }
 
-function getStatus($course_name, $course_id, $room_id, $start_date, $end_date) {
+function getStatus($course_name, $course_id, $room_id, $start_date, $end_date, $bypassLock) {
   
     $status = true;
     
     $sameCRN = false;
     
-    $lock = db_query("SELECT * FROM field_revision_field_lock_date_time WHERE entity_id=(SELECT MAX(entity_id) FROM field_revision_field_lock_date_time)");
+    $lock = db_query("SELECT * 
+                      FROM field_revision_field_lock_date_time 
+                      WHERE entity_id=(SELECT MAX(entity_id) 
+                                       FROM field_revision_field_lock_date_time)");
     
     $lock_data = $lock->fetchObject();
     
@@ -139,14 +178,15 @@ function getStatus($course_name, $course_id, $room_id, $start_date, $end_date) {
     
     $lock_date = date('Y-m-d H:i', strtotime('-5 hour', strtotime($lock_date)));
     
-    if ($lock_date >= $current_date) {
+    if ($lock_date >= $current_date || $bypassLock) {
       
-      $res = db_query("SELECT time.entity_id, field_time_value, field_time_value2, field_course_names_value, field_course_id_value
+      $res = db_query("SELECT time.entity_id, field_time_value, field_time_value2, field_course_names_value, field_course_id_value, term.name
                        FROM field_data_field_time AS time 
                        NATURAL JOIN field_data_field_roomname AS room
                        NATURAL JOIN field_data_field_course_names AS name
                        NATURAL JOIN field_data_field_course_id
                        JOIN node as n ON n.nid = time.entity_id
+                       JOIN taxonomy_term_data AS term ON term.tid = room.field_roomname_tid
                        WHERE n.status = 1 
                        AND n.type = 'submit_room_request'
                        AND room.field_roomname_tid = " . $room_id);
@@ -166,7 +206,7 @@ function getStatus($course_name, $course_id, $room_id, $start_date, $end_date) {
   	        ($start_date <= $start && $end_date >= $end) && 
   	        $status) {
   	          
-  	          if($course != $course_name) {
+  	          if($course != $course_name && $data->name != 'Off Campus') {
   	            
   	            $status = false;
   	            

@@ -8,8 +8,6 @@ function schedule_form($form, $form_state) {
     
   $crns = get_crns_by_course(array($_SESSION['Selected-Course']));
     
-  //$crns = array_merge(array($course . '-All' => $course . '-All'), $crns);
-    
   $res = db_query("SELECT name, tid FROM taxonomy_term_data");
     
   while($data = $res->fetchObject()){
@@ -67,6 +65,8 @@ function schedule_form($form, $form_state) {
     '#date_label_position' => 'within',
     
     '#date_timezone' => $timezone,
+    
+    '#required' => TRUE,
     
     '#date_increment' => 15,
     
@@ -286,7 +286,7 @@ function schedule_form_submit($form, &$form_state) {
     	
       	if($form_state['values']['repeat']) {
       	
-          repeat_event_until($course_parts[0], $course_parts[1], $roomParts[0], $roomParts[1], $form_state['values']['start_date'], $form_state['values']['end_date'], $form_state['values']['repeat-until']);
+          repeat_event_until($course_parts[0], $course_parts[1], $roomParts[0], $roomParts[1], $form_state['values']['start_date'], $end_time, $form_state['values']['repeat-until']);
       	
       	}
       	

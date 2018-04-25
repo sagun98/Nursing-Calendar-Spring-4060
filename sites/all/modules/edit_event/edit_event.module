@@ -206,6 +206,12 @@ function edit_event_form_submit($form, &$form_state) {
     
   }
   
+  else if($_GET['event_type'] == 'event') {
+  
+    delete_event($node_id);
+
+  }
+  
   else {
     
     node_delete($node_id);
@@ -214,7 +220,7 @@ function edit_event_form_submit($form, &$form_state) {
   
   create_event($roomParts[0], $roomParts[1], $_GET['course_name'], $_GET['course_id'], $start_date, $end_date);
   
-  drupal_goto("manager/dashboard");
+  drupal_goto("staff/dashboard");
  
 }
 
@@ -224,6 +230,41 @@ function delete_request($node_id) {
   
   $del = db_query("DELETE FROM REQUESTS
                           WHERE nid = $node_id");
+  
+}
+
+// deleted the node taking node id as the param
+function delete_event($node_id) {
+
+    node_delete($node_id);
+
+    $res = db_query("SELECT nid, collision_id
+                     FROM collision
+                     WHERE nid = $node_id
+                     AND flag = 1");
+                     
+    $del = db_query("DELETE 
+                     FROM collision
+                     WHERE nid = $node_id");
+                     
+    while($data = $res->fetchObject()) {
+    
+      $collision_id = $data->collision_id;
+    
+      $result = db_query("SELECT *
+                          FROM collision
+                          WHERE collision_id = '$collision_id'
+                          AND flag = 0");
+                          
+        while($dt = $result->fetchObject()) {
+        
+          delete_collision($dt->nid, $collision_id);
+        
+          create_event($dt->room_name, $dt->room_id, $dt->course_name, $dt->CRN, $dt->start_time, $dt->end_time);
+        
+        }
+      
+    }
   
 }
 

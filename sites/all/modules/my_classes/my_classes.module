@@ -29,20 +29,20 @@ function get_classes(&$form_state){
   $output="";
   global $user;
   $rows=array();
-  $header= array("Course Name","Title","Semester");
+  $header= array("CRN", "Course Name","Title","Semester");
   $count = 0;
  
   if(check_role($user -> roles, "administrator") || check_role($user -> roles, "manager")) {
  
-    $res = db_query("SELECT CourseName, Title, Semester
-                     FROM COURSE");
+    $res = db_query("SELECT C.CourseID, C.CourseName, C.Title, C.Semester
+                     FROM COURSE AS C");
     
   }
     
   else if(check_role($user -> roles, "staff") || check_role($user -> roles, "lead")) {
     
-    $res = db_query("SELECT CourseName, Title, Semester
-                     FROM USER NATURAL JOIN TEACHES NATURAL JOIN COURSE 
+    $res = db_query("SELECT C.CourseID, C.CourseName, C.Title, C.Semester
+                     FROM USER NATURAL JOIN TEACHES NATURAL JOIN COURSE AS C
                      JOIN field_data_field_cwid AS fdfc ON CWID = fdfc.field_cwid_value  
                      JOIN users AS U ON fdfc.entity_id = U.uid 
                      WHERE U.uid = '$user->uid'");
@@ -51,8 +51,8 @@ function get_classes(&$form_state){
 
   else {
 
-    $res = db_query("SELECT CourseName, Title, Semester
-                     FROM USER NATURAL JOIN TAKES NATURAL JOIN COURSE 
+    $res = db_query("SELECT C.CourseID, C.CourseName, C.Title, C.Semester
+                     FROM USER NATURAL JOIN TAKES NATURAL JOIN COURSE AS C
                      JOIN field_data_field_cwid AS fdfc ON CWID = fdfc.field_cwid_value  
                      JOIN users AS U ON fdfc.entity_id = U.uid 
                      WHERE U.uid = '$user->uid'");
@@ -60,6 +60,7 @@ function get_classes(&$form_state){
 
   while($data = $res->fetchObject()){
 	  $rows[$count] = array(
+	  $data -> CourseID,
 		$data -> CourseName,
 		$data -> Title,
 		$data -> Semester
